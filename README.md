@@ -21,7 +21,7 @@ Neweix Account is the central identity and authentication platform for first-par
 
 ## Current implementation boundary
 
-The web UI supports **username-or-email + password** through a server-side Supabase Edge Function. The resolver never returns the account email to the browser, and applies persistent per-identifier throttling before credential verification. The limiter stores only one-way hashes, not usernames or emails. Phone sign-in, MFA management UI, passkey enrollment, trusted-session management, and the OAuth 2.1 / OIDC service-provider integration still require implementation and configuration. Do not present these as available features.
+The web UI supports **username-or-email + password** through a server-side Supabase Edge Function. Users can optionally enable a TOTP authenticator app in Account → Security settings; accounts with a verified factor must complete the MFA challenge before accessing the account dashboard. The resolver never returns the account email to the browser, and applies persistent per-identifier throttling before credential verification. The limiter stores only one-way hashes, not usernames or emails. Phone sign-in, MFA management UI, passkey enrollment, trusted-session management, and the OAuth 2.1 / OIDC service-provider integration still require implementation and configuration. Do not present these as available features.
 
 ## Authentication policy
 
@@ -46,5 +46,5 @@ Use the Supabase project URL and a publishable key in browser code. A Supabase s
 - Verified the Auth provisioning trigger creates a profile in a rolled-back test transaction.
 - Verified the central profile has owner-scoped RLS and private Account tables deny direct `anon` / `authenticated` table access.
 - The source has not yet been installed, typechecked, linted, built, or deployed in a runtime. Do not treat the UI as production-ready until those checks pass.
-- Phone sign-in, MFA/passkey/device-management UI, OAuth 2.1 / OIDC client setup, production SMTP, Supabase Auth security settings, and end-to-end integration tests remain to be completed.
+- TOTP authenticator enrollment, verification challenge, and removal UI are implemented using Supabase MFA. Phone sign-in, passkey/device-management UI, OAuth 2.1 / OIDC client setup, production SMTP, Supabase Auth security settings, and end-to-end integration tests remain to be completed.
 - The Supabase security advisor reports leaked-password protection is disabled and reports several existing SECURITY DEFINER warnings in the broader Neweix project. These findings predate or are outside the new Account tables; they still require review before production launch.
