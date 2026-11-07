@@ -12,27 +12,33 @@ export default function MfaPanel({ mode, factors = [] }: { mode: "settings" | "c
   const verified = factors.filter((factor) => factor.status === "verified" && factor.factor_type === "totp");
   function startSetup() {
     setError("");
-    startTransition(async () => {
-      const result = await beginTotpEnrollment();
-      if (result.error) return setError(result.error);
-      setFactorId(result.factorId!); setQrCode(result.qrCode!); setSecret(result.secret!);
+    startTransition(() => {
+      void (async () => {
+        const result = await beginTotpEnrollment();
+        if (result.error) return setError(result.error);
+        setFactorId(result.factorId); setQrCode(result.qrCode); setSecret(result.secret);
+      })();
     });
   }
   function submitCode() {
     setError("");
-    startTransition(async () => {
-      const result = await verifyTotp(factorId || verified[0]?.id || "", code.trim());
-      if (result.error) return setError(result.error);
-      window.location.assign("/account");
+    startTransition(() => {
+      void (async () => {
+        const result = await verifyTotp(factorId || verified[0]?.id || "", code.trim());
+        if (result.error) return setError(result.error);
+        window.location.assign("/account");
+      })();
     });
   }
   function remove(factor: Factor) {
     if (!window.confirm("Remove this authenticator from your Neweix Account?")) return;
     setError("");
-    startTransition(async () => {
-      const result = await removeTotpFactor(factor.id);
-      if (result.error) return setError(result.error);
-      window.location.reload();
+    startTransition(() => {
+      void (async () => {
+        const result = await removeTotpFactor(factor.id);
+        if (result.error) return setError(result.error);
+        window.location.reload();
+      })();
     });
   }
   return <section className="panel mfa-panel">
