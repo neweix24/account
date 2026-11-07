@@ -10,11 +10,18 @@ Neweix Account is the central identity and authentication platform for first-par
 - **Service access and security records:** private-schema tables, not exposed to the browser Data API.
 - **Authorization:** each service must enforce its own permissions. A shared login does not grant access to every service feature.
 
-## Initial database foundation
+## Implemented in this repository
 
-The first migration adds the central account profile, a first-party service registry, per-service access records, security-event audit storage, and a device-trust registry. It also provisions profiles for existing Auth users and automatically provisions profiles for new users.
+- Next.js App Router application with landing, email/password signup, email/password login, protected account page, sign-out, and password recovery/update routes.
+- Cookie-based Supabase SSR client and Next.js 16 `proxy.ts` session refresh.
+- Central account profile, service registry, service-access, security-event, and device-trust database foundation.
+- Existing Auth users are backfilled; new Auth users are automatically provisioned.
+- Public profile access is owner-scoped with RLS and column-level update grants. Private service/security tables are RLS-enabled and inaccessible to `anon` / `authenticated` roles.
+- Existing Neweix commerce tables and the existing `customer_profiles` / `staff_profiles` tables are intentionally left intact.
 
-Existing Neweix commerce tables and the existing `customer_profiles` / `staff_profiles` tables are intentionally left intact.
+## Current implementation boundary
+
+The web UI currently supports **email + password**. Username is collected and stored as the account handle, but username/password sign-in is not yet wired to a private server-side resolver. Phone sign-in, MFA management UI, passkey enrollment, trusted-session management, and the OAuth 2.1 / OIDC service-provider integration still require implementation and configuration. Do not present these as available features.
 
 ## Authentication policy
 
