@@ -19,7 +19,7 @@ export default async function AccountSecurityPage({
   if (sessionError || liveSession !== true) redirect("/login?error=Your%20session%20is%20no%20longer%20valid.");
 
   const { data: profile } = await supabase
-    .from("neweix_accounts")
+    .from("account")
     .select("account_status")
     .eq("user_id", user.id)
     .maybeSingle();

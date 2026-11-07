@@ -1,5 +1,7 @@
 "use server";
 
+import { createHmac } from "node:crypto";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -24,7 +26,7 @@ export async function signUp(formData: FormData) {
     password,
     options: {
       emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/auth/confirm`,
-      data: { full_name: fullName, username },
+      data: { full_name: fullName, username, identity_type: "customer" },
     },
   });
 
@@ -41,10 +43,33 @@ export async function signIn(formData: FormData) {
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!supabaseUrl || !publishableKey) redirect("/login?error=Sign-in%20is%20temporarily%20unavailable.");
 
+  const supabase = await createClient();
+  const requestHeaders = await headers();
+  const rateLimitSecret = process.env.LOGIN_RATE_LIMIT_HMAC_SECRET;
+  const clientIp = requestHeaders.get("cf-connecting-ip")?.trim()
+    || requestHeaders.get("x-real-ip")?.trim()
+    || requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || "";
+
+  const requestBody: { identifier: string; password: string; clientIp?: string } = { identifier, password };
+  const requestHeadersForFunction: Record<string, string> = {
+    "Content-Type": "application/json",
+    apikey: publishableKey,
+  };
+
+  // The Edge Function accepts the client IP for its IP bucket only when the
+  // Account server signs it with a shared server-only secret.
+  if (rateLimitSecret && clientIp) {
+    requestBody.clientIp = clientIp;
+    requestHeadersForFunction["x-neweix-client-ip-proof"] = createHmac("sha256", rateLimitSecret)
+      .update(clientIp)
+      .digest("hex");
+  }
+
   const response = await fetch(`${supabaseUrl}/functions/v1/neweix-username-login`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", apikey: publishableKey },
-    body: JSON.stringify({ identifier, password }),
+    headers: requestHeadersForFunction,
+    body: JSON.stringify(requestBody),
     cache: "no-store",
   });
 
@@ -53,6 +78,7 @@ export async function signIn(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent(result.error ?? "Sign-in failed. Check your credentials and verification.")}`);
   }
 
+  // Establish the returned Auth session in the same cookie-aware SSR client.
   const { error } = await supabase.auth.setSession({
     access_token: result.access_token,
     refresh_token: result.refresh_token,
