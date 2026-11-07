@@ -1,6 +1,6 @@
 # Supabase project setup checklist
 
-Target project: the existing **Neweix** Supabase project. Do not create a separate database.
+Target project: the existing **Neweix** Supabase project. Do not create a separate database and do not apply Account migrations to Eixon.
 
 ## Required Auth settings before production
 
@@ -17,6 +17,13 @@ Target project: the existing **Neweix** Supabase project. Do not create a separa
    Ensure the template escapes/encodes query parameters correctly in its HTML link.
 7. Configure the password recovery email to return to `<SITE_ORIGIN>/auth/update-password`.
 8. Keep secret/service-role keys in server-side secrets only. The app uses the publishable key in its browser/server Supabase client.
+
+## Database migration order and compatibility
+
+1. Apply the Account foundation, private-data lockdown, username rate-limit, session, live-session, password-audit, and profile-consolidation migrations in repository order.
+2. The profile-consolidation migration renames `public.neweix_accounts` to `public.account`, preserves existing usernames and Auth UUIDs, and merges legacy profile fields without deleting Auth users or credentials.
+3. The legacy `public.customer_profiles` relation is retained temporarily because Eixon-owned routines still depend on it. Do not drop or truncate it as part of Account work. Eixon must migrate those routines independently.
+4. Supreme identities are separate from Neweix Account and employee identities. Do not provision Supreme in `public.account` or `public.staff_profiles`.
 
 ## Central SSO configuration still required
 
@@ -37,7 +44,8 @@ Then install from the pinned `package.json`, run typecheck/lint/build, deploy, a
 ## Acceptance tests
 
 - A new email/password user receives a verification email and cannot use protected account pages before verification.
-- A successful confirmation provisions exactly one `neweix_accounts` row.
+- A successful confirmation provisions exactly one `public.account` row.
+- Existing Account usernames, Auth UUIDs, credentials, and sessions remain unchanged during profile consolidation.
 - Duplicate usernames and duplicate email addresses fail safely.
 - Invalid credentials return a generic error without revealing whether an account exists.
 - Password reset responses are identical for known and unknown addresses.
