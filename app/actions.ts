@@ -58,6 +58,8 @@ export async function signIn(formData: FormData) {
     refresh_token: result.refresh_token,
   });
   if (error) redirect("/login?error=Sign-in%20failed.%20Please%20try%20again.");
+  const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (assurance?.currentLevel === "aal1" && assurance?.nextLevel === "aal2") redirect("/mfa");
   redirect("/account");
 }
 
