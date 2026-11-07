@@ -212,7 +212,7 @@ returns void
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 begin
   if p_event_type not in ('login_success', 'login_failure') then
     raise exception 'Unsupported Account login event type';
@@ -229,7 +229,7 @@ begin
     coalesce(p_metadata, '{}'::jsonb)
   );
 end;
-$;
+$$;
 
 revoke all on function public.neweix_record_login_security_event(uuid, text, text, text, jsonb)
   from public, anon, authenticated;
