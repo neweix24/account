@@ -35,7 +35,8 @@ function dateLabel(value: string | null) {
   return Number.isNaN(date.getTime()) ? "Not available" : date.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
 }
 
-export default async function AccountSessionsPage() {
+export default async function AccountSessionsPage({ searchParams }: { searchParams: Promise<{ error?: string; message?: string }> }) {
+  const params = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -56,6 +57,8 @@ export default async function AccountSessionsPage() {
         <p className="eyebrow">ACCOUNT SECURITY</p>
         <h1>Sessions & devices</h1>
         <p className="muted">Review where your Neweix Account is signed in. Remove a session you no longer recognize.</p>
+        {params.error && <p className="notice error">{params.error}</p>}
+        {params.message && <p className="notice success">{params.message}</p>}
         {error ? (
           <p className="notice error">Unable to load sessions right now. Please refresh and try again.</p>
         ) : sessions.length === 0 ? (
