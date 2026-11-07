@@ -38,8 +38,19 @@ export async function signIn(formData: FormData) {
   if (!email || !password) redirect("/login?error=Enter%20your%20email%20and%20password.");
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) redirect("/login?error=Sign-in%20failed.%20Check%20your%20credentials%20and%20verification.");
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error || !data.user) redirect("/login?error=Sign-in%20failed.%20Check%20your%20credentials%20and%20verification.");
+
+  const { data: account } = await supabase
+    .from("neweix_accounts")
+    .select("account_status")
+    .eq("user_id", data.user.id)
+    .maybeSingle();
+
+  if (account?.account_status !== "active") {
+    await supabase.auth.signOut();
+    redirect("/login?error=This%20account%20is%20not%20currently%20active.");
+  }
   redirect("/account");
 }
 
