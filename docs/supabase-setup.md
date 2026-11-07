@@ -20,10 +20,12 @@ Target project: the existing **Neweix** Supabase project. Do not create a separa
 
 ## Database migration order and compatibility
 
-1. Apply the Account foundation, private-data lockdown, username rate-limit, session, live-session, password-audit, and profile-consolidation migrations in repository order.
-2. The profile-consolidation migration renames `public.neweix_accounts` to `public.account`, preserves existing usernames and Auth UUIDs, and merges legacy profile fields without deleting Auth users or credentials.
-3. The legacy `public.customer_profiles` relation is retained temporarily because Eixon-owned routines still depend on it. Do not drop or truncate it as part of Account work. Eixon must migrate those routines independently.
-4. Neweix Account is customer-only. The Account signup flow marks new Auth users with `identity_type=customer`; the database provisions only those customer identities. Employee identities and Supreme identities remain separate systems. Do not provision either in `public.account` or `public.staff_profiles`.
+1. Apply the Account foundation, private-data lockdown, username rate-limit, session, live-session, and password-audit migrations first.
+2. Deploy the updated `neweix-username-login` Edge Function before the profile migration. It supports both the legacy `public.neweix_accounts` table and the canonical `public.account` table during the transition.
+3. Apply the profile-consolidation migration. It renames `public.neweix_accounts` to `public.account`, preserves existing usernames and Auth UUIDs, and merges legacy profile fields without deleting Auth users or credentials. It refreshes the PostgREST schema cache after the rename.
+4. The legacy `public.customer_profiles` relation is retained temporarily because Eixon-owned routines still depend on it. Do not drop or truncate it as part of Account work. Eixon must migrate those routines independently.
+5. Neweix Account is customer-only. The Account signup flow marks new Auth users with `identity_type=customer`; the database provisions only those customer identities. Employee identities and Supreme identities remain separate systems. Do not provision either in `public.account` or `public.staff_profiles`.
+6. Deploy the Account web application only after the profile-consolidation migration is applied.
 
 ## Username login rate limiting
 
