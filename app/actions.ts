@@ -53,6 +53,7 @@ export async function signIn(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent(result.error ?? "Sign-in failed. Check your credentials and verification.")}`);
   }
 
+  // Establish the returned Auth session in the same cookie-aware SSR client.
   const { error } = await supabase.auth.setSession({
     access_token: result.access_token,
     refresh_token: result.refresh_token,
