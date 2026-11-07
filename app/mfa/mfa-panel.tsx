@@ -46,7 +46,7 @@ export default function MfaPanel({ mode, factors = [] }: { mode: "settings" | "c
       {verified.length > 0 && <div className="factor-list">{verified.map((factor) => <div className="factor-row" key={factor.id}><div><strong>{factor.friendly_name || "Authenticator app"}</strong><p className="fine">Verified TOTP authenticator</p></div><button className="button secondary" type="button" disabled={busy} onClick={() => remove(factor)}>Remove</button></div>)}</div>}
       {!factorId ? <button className="button primary" type="button" disabled={busy} onClick={startSetup}>{busy ? "Preparing…" : verified.length ? "Add another authenticator" : "Set up authenticator"}</button> : <>
         <p className="muted">Scan this QR code using an authenticator app, then enter the generated code.</p>
-        <div className="qr-wrap"><img alt="Authenticator setup QR code" src={qrCode} /></div>
+        <div className="qr-wrap"><img alt="Authenticator setup QR code" src={"data:image/svg+xml;charset=utf-8," + encodeURIComponent(qrCode)} /></div>
         <p className="fine">Can't scan? Enter this setup key manually:</p><code className="secret-key">{secret}</code>
         <label>Authenticator code<input inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 8))} placeholder="6-digit code" /></label>
         <button className="button primary full" type="button" disabled={busy || code.length < 6} onClick={submitCode}>{busy ? "Verifying…" : "Enable authenticator"}</button>
