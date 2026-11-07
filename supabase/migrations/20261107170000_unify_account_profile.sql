@@ -50,8 +50,27 @@ end;
 $$;
 revoke all on function public.neweix_generate_public_id(text) from public, anon, authenticated;
 
+-- Supreme is a separate identity system, not a Neweix Account or employee.
+-- Keep its Auth identity intact, but remove any legacy Account/profile/device/access rows.
+delete from private.neweix_account_service_access sa
+using supreme.identities si
+where sa.user_id = si.user_id;
+
+delete from private.neweix_account_devices d
+using supreme.identities si
+where d.user_id = si.user_id;
+
+delete from public.account a
+using supreme.identities si
+where a.user_id = si.user_id;
+
+delete from public.customer_profiles cp
+using supreme.identities si
+where cp.user_id = si.user_id;
+
 -- Merge the old profile fields into the canonical Account row without resetting usernames
 -- or deleting existing central identity data. Existing Auth UUIDs and credentials are unchanged.
+-- Supreme identities are explicitly excluded.
 update public.account a
 set
   public_id = coalesce(a.public_id, public.neweix_generate_public_id('a')),
@@ -73,7 +92,8 @@ set
   updated_at = now()
 from auth.users u
 left join public.customer_profiles cp on cp.user_id = u.id
-where a.user_id = u.id;
+where a.user_id = u.id
+  and not exists (select 1 from supreme.identities si where si.user_id = u.id);
 
 -- Provision any Auth user that predates the central identity table.
 insert into public.account (
@@ -100,6 +120,7 @@ select
 from auth.users u
 left join public.customer_profiles cp on cp.user_id = u.id
 where not exists (select 1 from public.account a where a.user_id = u.id)
+  and not exists (select 1 from supreme.identities si where si.user_id = u.id)
 on conflict (user_id) do nothing;
 
 create or replace function private.provision_neweix_account()
@@ -111,6 +132,11 @@ as $$
 declare
   candidate_username text;
 begin
+  -- Supreme owns its own identity lifecycle and must never receive a Neweix Account row.
+  if exists (select 1 from supreme.identities si where si.user_id = new.id) then
+    return new;
+  end if;
+
   candidate_username := lower(coalesce(
     nullif(new.raw_user_meta_data ->> 'username', ''),
     'user_' || substr(replace(new.id::text, '-', ''), 1, 12)
@@ -134,7 +160,34 @@ begin
     phone_verified_at = excluded.phone_verified_at;
   return new;
 end;
-$$;
+$;
+
+-- Also handle the case where Supreme creates its Auth user first and inserts its
+-- supreme.identities row afterwards: remove any transient Account-side records.
+create or replace function private.exclude_supreme_identity_from_neweix_account()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $
+begin
+  delete from private.neweix_account_service_access
+   where user_id = new.user_id;
+  delete from private.neweix_account_devices
+   where user_id = new.user_id;
+  delete from public.account
+   where user_id = new.user_id;
+  delete from public.customer_profiles
+   where user_id = new.user_id;
+  return new;
+end;
+$;
+
+revoke all on function private.exclude_supreme_identity_from_neweix_account() from public, anon, authenticated;
+drop trigger if exists exclude_supreme_identity_from_neweix_account on supreme.identities;
+create trigger exclude_supreme_identity_from_neweix_account
+after insert or update of user_id on supreme.identities
+for each row execute function private.exclude_supreme_identity_from_neweix_account();
 
 -- Redirect Account-owned SQL routines that depended on the old customer profile table.
 -- Eixon-owned eixpay routines remain untouched and continue to use their compatibility data
