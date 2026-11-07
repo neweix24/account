@@ -200,6 +200,45 @@ create trigger exclude_supreme_identity_from_neweix_account
 after insert or update of user_id on supreme.identities
 for each row execute function private.exclude_supreme_identity_from_neweix_account();
 
+-- Record login security events through a service-role-only RPC. Raw identifiers and IPs are never stored.
+create or replace function public.neweix_record_login_security_event(
+  p_user_id uuid,
+  p_event_type text,
+  p_ip_hash text default null,
+  p_user_agent text default null,
+  p_metadata jsonb default '{}'::jsonb
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $
+begin
+  if p_event_type not in ('login_success', 'login_failure') then
+    raise exception 'Unsupported Account login event type';
+  end if;
+
+  insert into private.neweix_account_security_events (
+    user_id, event_type, ip_hash, user_agent, metadata
+  )
+  values (
+    p_user_id,
+    p_event_type,
+    left(p_ip_hash, 64),
+    left(p_user_agent, 512),
+    coalesce(p_metadata, '{}'::jsonb)
+  );
+end;
+$;
+
+revoke all on function public.neweix_record_login_security_event(uuid, text, text, text, jsonb)
+  from public, anon, authenticated;
+grant execute on function public.neweix_record_login_security_event(uuid, text, text, text, jsonb)
+  to service_role;
+
+comment on function public.neweix_record_login_security_event(uuid, text, text, text, jsonb)
+  is 'Service-role-only writer for Account login audit events; stores only hashed IP data and non-sensitive metadata.';
+
 -- Redirect Account-owned SQL routines that depended on the old customer profile table.
 -- Eixon-owned eixpay routines remain untouched and continue to use their compatibility data
 -- until the Eixon repository migrates them independently.
