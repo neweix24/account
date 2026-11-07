@@ -12,7 +12,7 @@ Neweix Account is the central identity and authentication platform for first-par
 
 ## Implemented in this repository
 
-- Next.js App Router application with landing, email/password signup, email/password login, protected account page, sign-out, and password recovery/update routes.
+- Next.js App Router application with landing, email/password signup, username-or-email/password login, protected account page, sign-out, and password recovery/update routes.
 - Cookie-based Supabase SSR client and Next.js 16 `proxy.ts` session refresh.
 - Central account profile, service registry, service-access, security-event, and device-trust database foundation.
 - Existing Auth users are backfilled; new Auth users are automatically provisioned.
@@ -21,7 +21,7 @@ Neweix Account is the central identity and authentication platform for first-par
 
 ## Current implementation boundary
 
-The web UI currently supports **email + password**. Username is collected and stored as the account handle, but username/password sign-in is not yet wired to a private server-side resolver. Phone sign-in, MFA management UI, passkey enrollment, trusted-session management, and the OAuth 2.1 / OIDC service-provider integration still require implementation and configuration. Do not present these as available features.
+The web UI supports **username-or-email + password** through a server-side Supabase Edge Function. The resolver never returns the account email to the browser, and applies persistent per-identifier and per-IP throttling before credential verification. Phone sign-in, MFA management UI, passkey enrollment, trusted-session management, and the OAuth 2.1 / OIDC service-provider integration still require implementation and configuration. Do not present these as available features.
 
 ## Authentication policy
 
@@ -46,5 +46,5 @@ Use the Supabase project URL and a publishable key in browser code. A Supabase s
 - Verified the Auth provisioning trigger creates a profile in a rolled-back test transaction.
 - Verified the central profile has owner-scoped RLS and private Account tables deny direct `anon` / `authenticated` table access.
 - The source has not yet been installed, typechecked, linted, built, or deployed in a runtime. Do not treat the UI as production-ready until those checks pass.
-- Username/password sign-in, phone sign-in, MFA/passkey/device-management UI, OAuth 2.1 / OIDC client setup, production SMTP, Supabase Auth security settings, and end-to-end integration tests remain to be completed.
+- Phone sign-in, MFA/passkey/device-management UI, OAuth 2.1 / OIDC client setup, production SMTP, Supabase Auth security settings, and end-to-end integration tests remain to be completed.
 - The Supabase security advisor reports leaked-password protection is disabled and reports several existing SECURITY DEFINER warnings in the broader Neweix project. These findings predate or are outside the new Account tables; they still require review before production launch.
