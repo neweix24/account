@@ -65,7 +65,8 @@ export async function signIn(formData: FormData) {
 
 export async function signOut() {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  // A normal sign-out should affect this browser only, not every signed-in device.
+  await supabase.auth.signOut({ scope: "local" });
   redirect("/login");
 }
 
