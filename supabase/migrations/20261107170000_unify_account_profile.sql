@@ -169,19 +169,22 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $$
+as $
 begin
-  delete from private.neweix_account_service_access
-   where user_id = new.user_id;
-  delete from private.neweix_account_devices
-   where user_id = new.user_id;
-  delete from public.account
-   where user_id = new.user_id;
-  delete from public.customer_profiles
-   where user_id = new.user_id;
+  if tg_op = 'UPDATE' and old.user_id is distinct from new.user_id then
+    delete from private.neweix_account_service_access where user_id = old.user_id;
+    delete from private.neweix_account_devices where user_id = old.user_id;
+    delete from public.account where user_id = old.user_id;
+    delete from public.customer_profiles where user_id = old.user_id;
+  end if;
+
+  delete from private.neweix_account_service_access where user_id = new.user_id;
+  delete from private.neweix_account_devices where user_id = new.user_id;
+  delete from public.account where user_id = new.user_id;
+  delete from public.customer_profiles where user_id = new.user_id;
   return new;
 end;
-$$;
+$;
 
 revoke all on function private.exclude_supreme_identity_from_neweix_account() from public, anon, authenticated;
 drop trigger if exists exclude_supreme_identity_from_neweix_account on supreme.identities;
