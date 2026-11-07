@@ -83,11 +83,21 @@ Deno.serve(async (request: Request) => {
       return json(429, { error: "Too many sign-in attempts. Try again in 15 minutes." });
     }
 
-    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
-    const accountQuery = admin.from("account").select("user_id,email,account_status");
-    const { data: account, error: lookupError } = isEmail
-      ? await accountQuery.ilike("email", identifier).maybeSingle()
-      : await accountQuery.eq("username", identifier).maybeSingle();
+    const isEmail = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(identifier);
+    const findAccount = async (table: "account" | "neweix_accounts") => {
+      const query = admin.from(table).select("user_id,email,account_status");
+      return isEmail
+        ? await query.ilike("email", identifier).maybeSingle()
+        : await query.eq("username", identifier).maybeSingle();
+    };
+
+    // Keep login available while the canonical table is renamed during rollout.
+    let { data: account, error: lookupError } = await findAccount("account");
+    if (lookupError?.code === "PGRST205" || lookupError?.code === "42P01") {
+      const legacyResult = await findAccount("neweix_accounts");
+      account = legacyResult.data;
+      lookupError = legacyResult.error;
+    }
 
     if (lookupError || !account?.email || account.account_status !== "active") {
       return json(401, { error: "Sign-in failed. Check your credentials and verification." });
