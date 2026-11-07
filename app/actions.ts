@@ -12,9 +12,10 @@ export async function signUp(formData: FormData) {
   const username = value(formData, "username").toLowerCase();
   const email = value(formData, "email").toLowerCase();
   const password = String(formData.get("password") ?? "");
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
-  if (!fullName || !/^[a-z0-9_][a-z0-9_.-]{2,29}$/.test(username) || !email || password.length < 12) {
-    redirect("/signup?error=Please%20check%20your%20details.%20Password%20must%20be%20at%20least%2012%20characters.");
+  if (!fullName || !/^[a-z0-9_][a-z0-9_.-]{2,29}$/.test(username) || !email || password.length < 12 || password !== confirmPassword) {
+    redirect("/signup?error=Check%20your%20details.%20Passwords%20must%20match%20and%20contain%20at%20least%2012%20characters.");
   }
 
   const supabase = await createClient();
