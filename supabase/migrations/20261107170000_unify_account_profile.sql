@@ -21,7 +21,7 @@ declare
   v_candidate text;
   i integer;
 begin
-  if p_prefix <> 'eix:a' then
+  if p_prefix <> 'a' then
     raise exception 'Unsupported Account ID prefix';
   end if;
   loop
@@ -49,7 +49,7 @@ insert into public.account (
 )
 select
   u.id,
-  public.neweix_generate_public_id('eix:a'),
+  public.neweix_generate_public_id('a'),
   'user_' || substr(replace(u.id::text, '-', ''), 1, 12),
   u.email,
   u.phone,
@@ -81,7 +81,7 @@ begin
     user_id, public_id, username, full_name, display_name, email, phone,
     email_verified_at, phone_verified_at
   ) values (
-    new.id, public.neweix_generate_public_id('eix:a'), candidate_username,
+    new.id, public.neweix_generate_public_id('a'), candidate_username,
     nullif(new.raw_user_meta_data ->> 'full_name', ''),
     nullif(new.raw_user_meta_data ->> 'display_name', ''),
     new.email, new.phone, new.email_confirmed_at, new.phone_confirmed_at
