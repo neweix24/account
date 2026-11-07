@@ -39,6 +39,12 @@ Use the Supabase project URL and a publishable key in browser code. A Supabase s
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 
-## Status
+## Verification and remaining launch work
 
-The repository was empty at project start. This commit establishes the architecture and database migration. A deployable web application, username resolver, OAuth/OIDC client registration, email/SMS delivery setup, and end-to-end integration tests are follow-on implementation work and must not be represented as complete until built and verified.
+- Applied both Account migrations to the existing Neweix Supabase project.
+- Verified all 4 existing Auth users have a central account row (0 missing).
+- Verified the Auth provisioning trigger creates a profile in a rolled-back test transaction.
+- Verified the central profile has owner-scoped RLS and private Account tables deny direct `anon` / `authenticated` table access.
+- The source has not yet been installed, typechecked, linted, built, or deployed in a runtime. Do not treat the UI as production-ready until those checks pass.
+- Username/password sign-in, phone sign-in, MFA/passkey/device-management UI, OAuth 2.1 / OIDC client setup, production SMTP, Supabase Auth security settings, and end-to-end integration tests remain to be completed.
+- The Supabase security advisor reports leaked-password protection is disabled and reports several existing SECURITY DEFINER warnings in the broader Neweix project. These findings predate or are outside the new Account tables; they still require review before production launch.
