@@ -25,6 +25,15 @@ Target project: the existing **Neweix** Supabase project. Do not create a separa
 3. The legacy `public.customer_profiles` relation is retained temporarily because Eixon-owned routines still depend on it. Do not drop or truncate it as part of Account work. Eixon must migrate those routines independently.
 4. Supreme identities are separate from Neweix Account and employee identities. Do not provision Supreme in `public.account` or `public.staff_profiles`.
 
+## Username login rate limiting
+
+The login Edge Function always applies the per-identifier limit. For the additional per-client-IP bucket, set the same randomly generated secret in both places:
+
+- Account application server environment: `LOGIN_RATE_LIMIT_HMAC_SECRET`
+- Neweix Supabase Edge Function secrets: `LOGIN_RATE_LIMIT_HMAC_SECRET`
+
+The Account server signs the trusted incoming client IP; the Edge Function verifies the HMAC before using that IP for throttling. Without the secret, login continues with per-identifier throttling only. Never put this secret in a `NEXT_PUBLIC_` variable or commit its value.
+
 ## Central SSO configuration still required
 
 Enable Supabase Auth's OAuth 2.1 / OpenID Connect server only when first-party client origins and callback URLs are finalized. Register each Neweix service separately, use authorization code + PKCE, exact redirect URI allowlists, short-lived access tokens, refresh-token rotation, and least-privilege scopes. This is first-party Neweix SSO, not Google/Facebook social login.
@@ -38,6 +47,7 @@ Set these in the selected hosting environment:
 - `NEXT_PUBLIC_SUPABASE_URL` — existing Neweix project URL.
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — active publishable key.
 - `NEXT_PUBLIC_SITE_URL` — final Account application origin.
+- `LOGIN_RATE_LIMIT_HMAC_SECRET` — optional shared server-only HMAC secret for IP-based throttling.
 
 Then install from the pinned `package.json`, run typecheck/lint/build, deploy, and test all auth flows against the production domain.
 
