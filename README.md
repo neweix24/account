@@ -6,7 +6,7 @@ Neweix Account is the central identity and authentication platform for first-par
 
 - **Identity authority:** Supabase Auth in the existing **Neweix** Supabase project.
 - **Database:** the existing Neweix PostgreSQL database; this repository does not create a second database.
-- **Profile:** `public.account`, keyed by the immutable Supabase Auth user UUID.
+- **Profile:** `public.account`, keyed by the immutable Supabase Auth user UUID. The profile-consolidation migration must be applied before deploying this revision of the application.
 - **Service access and security records:** private-schema tables, not exposed to the browser Data API.
 - **Authorization:** each service must enforce its own permissions. A shared login does not grant access to every service feature.
 
@@ -19,7 +19,7 @@ Neweix Account is the central identity and authentication platform for first-par
 - Password & security management: current-password verification, minimum password length, security-event audit, and revocation of other sessions.
 - TOTP authenticator enrollment, verification challenge, and removal using Supabase MFA.
 - Central Account profile, unique Account ID, service registry, service-access, security-event, and device-trust database foundation.
-- Existing Auth users are provisioned without changing their UUIDs or credentials.
+- Existing Auth users are provisioned without changing their UUIDs or credentials; profile consolidation preserves existing usernames and merges compatible legacy profile fields.
 - Public profile access is owner-scoped with RLS and column-level update grants. Private service/security tables are inaccessible to client roles.
 - Commerce and other service-owned business data remain in their respective services; only central identity/profile fields are owned by Account.
 
@@ -27,7 +27,7 @@ Neweix Account is the central identity and authentication platform for first-par
 
 - First-party email/password authentication.
 - Username/password uses a server-side identifier resolver and persistent throttling.
-- Phone verification is stored on the central Account profile; OTP delivery requires an SMS provider.
+- Phone verification is stored on the central Account profile; OTP delivery requires an SMS provider and a completed Account verification flow.
 - No Google or Facebook provider buttons or OAuth providers.
 - Central SSO should use the Supabase OAuth 2.1 / OpenID Connect server capability with PKCE after it is enabled and configured in Supabase.
 
@@ -35,9 +35,17 @@ Neweix Account is the central identity and authentication platform for first-par
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `NEXT_PUBLIC_SITE_URL`
 
 A Supabase secret/service-role key must only exist in server-side secrets and must never use a `NEXT_PUBLIC_` prefix.
 
+## Database migration safety
+
+- Apply the migrations to the existing **Neweix** Supabase project, not the Eixon project.
+- The profile-consolidation migration renames `public.neweix_accounts` to `public.account`, preserves existing Account usernames and Auth UUIDs, and merges legacy profile fields.
+- The legacy `public.customer_profiles` relation is retained temporarily because Eixon-owned database routines still depend on it. Do not drop it from this repository; Eixon must migrate its own routines independently before that compatibility data can be retired.
+- Supreme identity is separate and is not provisioned as a Neweix Account or employee profile.
+
 ## Verification and remaining launch work
 
-The existing migrations establish central identity, session management, live-session enforcement, and password-security auditing. The application source still requires install, typecheck, lint, build, and browser end-to-end verification before deployment. Production SMTP, SMS provider configuration, leaked-password protection, and OAuth 2.1 / OIDC client registration remain launch tasks.
+The repository includes CI for typecheck, lint, and production build. Run browser end-to-end verification before deployment. Production SMTP, SMS provider configuration and the Account phone-verification UI/flow, leaked-password protection, and OAuth 2.1 / OIDC client registration remain launch tasks.
