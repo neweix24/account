@@ -1,6 +1,6 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
-export async function beginTotpEnrollment() {
+export async function beginTotpEnrollment(): Promise<{ error: string; factorId?: never; qrCode?: never; secret?: never } | { error?: never; factorId: string; qrCode: string; secret: string }> {
   const supabase = await createClient();
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) return { error: "Please sign in again." };
@@ -8,7 +8,7 @@ export async function beginTotpEnrollment() {
   if (error || !data?.totp) return { error: error?.message ?? "Could not start authenticator setup." };
   return { factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret };
 }
-export async function verifyTotp(factorId: string, code: string) {
+export async function verifyTotp(factorId: string, code: string): Promise<{ error: string } | { success: true }> {
   if (!/^[a-zA-Z0-9-]{10,100}$/.test(factorId) || !/^\d{6,8}$/.test(code)) return { error: "Enter a valid authenticator code." };
   const supabase = await createClient();
   const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -19,7 +19,7 @@ export async function verifyTotp(factorId: string, code: string) {
   if (error) return { error: error.message };
   return { success: true };
 }
-export async function removeTotpFactor(factorId: string) {
+export async function removeTotpFactor(factorId: string): Promise<{ error: string } | { success: true }> {
   if (!/^[a-zA-Z0-9-]{10,100}$/.test(factorId)) return { error: "Invalid authenticator." };
   const supabase = await createClient();
   const { data: { user }, error: userError } = await supabase.auth.getUser();
