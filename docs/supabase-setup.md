@@ -20,7 +20,7 @@ Target project: the existing **Neweix** Supabase project. Do not create a separa
 
 ## Existing social identities — migration safety
 
-The current Neweix Auth data contains customer identities that were created through Google. Two customer accounts currently have no password set. The Account application itself offers only email/username + password login. Do not disable the Google provider until those two accounts have completed password recovery or the owner confirms that they are demo accounts to remove. No Google or Facebook sign-in button should be added to the Account application.
+The current Neweix Auth data contains customer identities created through Google, including accounts without a password set. The Account application itself offers only email/username + password login. Do not disable the Google provider until those two accounts have completed password recovery or the owner confirms that they are demo accounts to remove. No Google or Facebook sign-in button should be added to the Account application.
 
 ## Database migration order and compatibility
 
