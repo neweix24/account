@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "https://neweix.com",
-  "Access-Control-Allow-Headers": "authorization, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-neweix-client-ip-proof",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Vary": "Origin",
 };
@@ -20,6 +20,23 @@ async function sha256(value: string) {
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+async function verifyClientIpProof(ip: string, proof: string, secret: string) {
+  if (!ip || !/^[a-f0-9]{64}$/i.test(proof)) return false;
+  try {
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["verify"],
+    );
+    const signature = new Uint8Array(proof.match(/.{2}/g)!.map((byte) => Number.parseInt(byte, 16)));
+    return await crypto.subtle.verify("HMAC", key, signature, new TextEncoder().encode(ip));
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return json(405, { error: "Sign-in failed." });
@@ -33,6 +50,8 @@ Deno.serve(async (request: Request) => {
     const payload = await request.json();
     const identifier = String(payload?.identifier ?? "").trim().toLowerCase();
     const password = String(payload?.password ?? "");
+    const clientIp = String(payload?.clientIp ?? "").trim();
+    const clientIpProof = request.headers.get("x-neweix-client-ip-proof") ?? "";
 
     if (!identifier || identifier.length > 254 || !password || password.length > 1024) {
       return json(400, { error: "Sign-in failed. Check your credentials and verification." });
@@ -52,9 +71,13 @@ Deno.serve(async (request: Request) => {
     const admin = createClient(projectUrl, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
     const identifierHash = await sha256(identifier);
+    const ipHashSecret = Deno.env.get("LOGIN_RATE_LIMIT_HMAC_SECRET");
+    const trustedIp = ipHashSecret && await verifyClientIpProof(clientIp, clientIpProof, ipHashSecret);
+    const ipHash = trustedIp ? await sha256(`${ipHashSecret}:${clientIp}`) : identifierHash;
+
     const { data: allowed, error: rateError } = await admin.rpc("neweix_consume_login_rate_limit", {
       p_identifier_hash: identifierHash,
-      p_ip_hash: identifierHash,
+      p_ip_hash: ipHash,
     });
     if (rateError || allowed !== true) {
       return json(429, { error: "Too many sign-in attempts. Try again in 15 minutes." });
