@@ -112,8 +112,7 @@ begin
     v_definition := pg_get_functiondef(r.oid);
     v_definition := replace(v_definition, 'public.customer_profiles', 'public.account');
     v_definition := replace(v_definition,
-      'not exists (select 1 from public.staff_profiles
-    where user_id = v_actor and role = ''supreme'' and is_active = true)',
+      E'not exists (\\n    select 1 from public.staff_profiles\\n    where user_id = v_actor and role = ''supreme'' and is_active = true\\n  )',
       'not private.has_staff_role(array[''supreme'']::text[])'
     );
     execute v_definition;
