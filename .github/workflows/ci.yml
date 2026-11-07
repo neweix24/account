@@ -16,9 +16,9 @@ concurrency:
 
 jobs:
   verify:
-    name: Typecheck, lint and production build
+    name: Typecheck, lint, Edge Function check and production build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
@@ -31,11 +31,19 @@ jobs:
         with:
           node-version: 22
 
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Typecheck
+      - name: Typecheck Next.js application
         run: npm run typecheck
+
+      - name: Check Supabase Edge Function
+        run: deno check supabase/functions/neweix-username-login/index.ts
 
       - name: Lint
         run: npm run lint
