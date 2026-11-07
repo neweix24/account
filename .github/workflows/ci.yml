@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: account-ci-${{ github.ref }}
+  group: account-ci-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
