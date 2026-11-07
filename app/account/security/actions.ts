@@ -25,7 +25,7 @@ export async function changePassword(formData: FormData) {
   if (sessionError || liveSession !== true) redirect("/login?error=Your%20session%20is%20no%20longer%20valid.");
 
   const { data: profile, error: profileError } = await supabase
-    .from("neweix_accounts")
+    .from("account")
     .select("account_status")
     .eq("user_id", user.id)
     .maybeSingle();

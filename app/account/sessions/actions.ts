@@ -9,7 +9,7 @@ async function requireActiveMfaSession() {
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase
-    .from("neweix_accounts")
+    .from("account")
     .select("account_status")
     .eq("user_id", user.id)
     .maybeSingle();

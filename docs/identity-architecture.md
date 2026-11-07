@@ -7,22 +7,22 @@ One person has one canonical Neweix identity. That identity is authenticated cen
 ## Trust boundaries
 
 1. Supabase Auth owns credentials, password hashes, email/phone verification, sessions, refresh tokens, and MFA factors.
-2. `public.neweix_accounts` stores the user-facing identity profile and references `auth.users(id)`.
+2. `public.account` is the canonical user-facing identity profile and references `auth.users(id)`.
 3. The `private` schema stores service registration, per-service access decisions, security audit events, and trusted-device hashes. It is not exposed through the public Data API.
 4. Service-specific roles and business permissions remain in their owning service and must never be trusted from user-editable Auth metadata.
 
 ## Account lifecycle
 
 - Signup creates a Supabase Auth user.
-- An Auth database trigger creates the matching `neweix_accounts` row.
+- An Auth database trigger creates the matching `account` row.
 - Email/phone verification timestamps are synchronized from Auth.
 - Password reset and MFA are handled by Supabase Auth.
 - Account suspension/closure is an administrative workflow; service access must check account status.
-- Existing Auth users are backfilled without changing their UUIDs or credentials.
+- Existing Auth users are provisioned without changing their UUIDs or credentials.
 
 ## Sign-in identifiers
 
-Supabase password sign-in accepts email or phone identifiers. Username sign-in needs a server-side resolver that maps a normalized username to the corresponding Auth login identifier without returning the identifier to an unauthenticated caller. The resolver must be rate-limited, avoid account enumeration, and use server-only credentials. Do not implement username resolution as an unrestricted public SQL function.
+Supabase password sign-in accepts email or phone identifiers. Username sign-in uses a server-side resolver that maps a normalized username to the corresponding Auth login identifier without returning the identifier to an unauthenticated caller. The resolver is rate-limited and avoids account enumeration.
 
 ## First-party SSO
 
@@ -46,11 +46,11 @@ Enabling the Supabase OAuth server and registering clients is a project-level Au
 ## Data model
 
 - `auth.users`: credential identity and authentication state.
-- `public.neweix_accounts`: central profile and canonical Auth UUID.
+- `public.account`: canonical identity profile, unique Account ID, username, contact details, and verification state.
 - `private.neweix_service_clients`: approved first-party client registry.
 - `private.neweix_account_service_access`: per-user service access status.
 - `private.neweix_account_security_events`: security audit events.
-- `private.neweix_account_devices`: trusted-device registry storing only a one-way fingerprint hash.
+- `private.neweix_account_devices`: trusted-device registry storing only a one-way device fingerprint hash.
 
 ## Non-goals
 
