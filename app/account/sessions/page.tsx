@@ -40,6 +40,8 @@ export default async function AccountSessionsPage({ searchParams }: { searchPara
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const { data: profile } = await supabase.from("neweix_accounts").select("account_status").eq("user_id", user.id).maybeSingle();
+  if (profile?.account_status !== "active") redirect("/login?error=This%20account%20is%20not%20currently%20active.");
 
   const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
   if (assurance?.currentLevel === "aal1" && assurance?.nextLevel === "aal2") redirect("/mfa");
