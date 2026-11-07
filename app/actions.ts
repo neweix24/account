@@ -41,13 +41,10 @@ export async function signIn(formData: FormData) {
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!supabaseUrl || !publishableKey) redirect("/login?error=Sign-in%20is%20temporarily%20unavailable.");
 
-  const { headers } = await import("next/headers");
-  const requestHeaders = await headers();
-  const clientIp = requestHeaders.get("cf-connecting-ip") ?? "unknown";
   const response = await fetch(`${supabaseUrl}/functions/v1/neweix-username-login`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: publishableKey },
-    body: JSON.stringify({ identifier, password, clientIp }),
+    body: JSON.stringify({ identifier, password }),
     cache: "no-store",
   });
 
