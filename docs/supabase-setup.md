@@ -4,7 +4,7 @@ Target project: the existing **Neweix** Supabase project. Do not create a separa
 
 ## Required Auth settings before production
 
-1. In Authentication → Providers, keep Email enabled and disable Google, Facebook, and every other social provider. This is an explicit product requirement.
+1. In Authentication → Providers, keep Email enabled. Disable Google, Facebook, and every other social provider only after existing users who rely on those identities have set an email password or have been explicitly confirmed as disposable. This is an explicit product requirement; do not lock existing customers out during migration.
 2. Enable email confirmations. Confirm the email/password provider is enabled.
 3. Set a minimum password length of at least 12 characters and enable leaked-password protection.
 4. Configure a production SMTP sender and test signup confirmation, password recovery, resend confirmation, and delivery/bounce handling.
@@ -17,6 +17,10 @@ Target project: the existing **Neweix** Supabase project. Do not create a separa
    Ensure the template escapes/encodes query parameters correctly in its HTML link.
 7. Configure the password recovery email to return to `<SITE_ORIGIN>/auth/update-password`.
 8. Keep secret/service-role keys in server-side secrets only. The app uses the publishable key in its browser/server Supabase client.
+
+## Existing social identities — migration safety
+
+The current Neweix Auth data contains customer identities created through Google, including accounts without a password set. The Account application itself offers only email/username + password login. Do not disable the Google provider until those two accounts have completed password recovery or the owner confirms that they are demo accounts to remove. No Google or Facebook sign-in button should be added to the Account application.
 
 ## Database migration order and compatibility
 
