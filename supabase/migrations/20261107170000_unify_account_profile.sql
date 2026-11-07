@@ -121,6 +121,7 @@ from auth.users u
 left join public.customer_profiles cp on cp.user_id = u.id
 where not exists (select 1 from public.account a where a.user_id = u.id)
   and not exists (select 1 from supreme.identities si where si.user_id = u.id)
+  and coalesce(u.raw_user_meta_data ->> 'identity_type', '') = 'customer'
 on conflict (user_id) do nothing;
 
 create or replace function private.provision_neweix_account()
@@ -134,6 +135,13 @@ declare
 begin
   -- Supreme owns its own identity lifecycle and must never receive a Neweix Account row.
   if exists (select 1 from supreme.identities si where si.user_id = new.id) then
+    return new;
+  end if;
+
+  -- Only the customer signup flow may create a Neweix Account profile.
+  -- Existing customer rows continue to be synchronized on Auth email/phone updates.
+  if not exists (select 1 from public.account a where a.user_id = new.id)
+     and coalesce(new.raw_user_meta_data ->> 'identity_type', '') <> 'customer' then
     return new;
   end if;
 
