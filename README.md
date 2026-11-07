@@ -21,7 +21,7 @@ Neweix Account is the central identity and authentication platform for first-par
 
 ## Current implementation boundary
 
-The web UI supports **username-or-email + password** through a server-side Supabase Edge Function. The resolver never returns the account email to the browser, and applies persistent per-identifier and per-IP throttling before credential verification. Phone sign-in, MFA management UI, passkey enrollment, trusted-session management, and the OAuth 2.1 / OIDC service-provider integration still require implementation and configuration. Do not present these as available features.
+The web UI supports **username-or-email + password** through a server-side Supabase Edge Function. The resolver never returns the account email to the browser, and applies persistent per-identifier throttling before credential verification. The limiter stores only one-way hashes, not usernames or emails. Phone sign-in, MFA management UI, passkey enrollment, trusted-session management, and the OAuth 2.1 / OIDC service-provider integration still require implementation and configuration. Do not present these as available features.
 
 ## Authentication policy
 
