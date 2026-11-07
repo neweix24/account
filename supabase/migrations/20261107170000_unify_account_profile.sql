@@ -111,6 +111,12 @@ begin
   loop
     v_definition := pg_get_functiondef(r.oid);
     v_definition := replace(v_definition, 'public.customer_profiles', 'public.account');
+    -- The central Account row already exists at phone-verification time.
+    -- Update it in place; inserting a partial row would violate required username/public_id.
+    v_definition := replace(v_definition,
+      E'  begin\\n    insert into public.account (\\n      user_id, phone, phone_verified_at, updated_at\\n    )\\n    values (p_user_id, p_phone, pg_catalog.now(), pg_catalog.now())\\n    on conflict (user_id) do update\\n      set phone = excluded.phone,\\n          phone_verified_at = pg_catalog.now(),\\n          updated_at = pg_catalog.now();\\n  exception',
+      E'  begin\\n    update public.account\\n       set phone = p_phone,\\n           phone_verified_at = pg_catalog.now(),\\n           updated_at = pg_catalog.now()\\n     where user_id = p_user_id;\\n    if not found then return ''account_not_found''; end if;\\n  exception'
+    );
     v_definition := replace(v_definition,
       E'not exists (\\n    select 1 from public.staff_profiles\\n    where user_id = v_actor and role = ''supreme'' and is_active = true\\n  )',
       'not private.has_staff_role(array[''supreme'']::text[])'
