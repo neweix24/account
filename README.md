@@ -14,7 +14,7 @@ Neweix Account is the central identity and authentication platform for first-par
 
 - Next.js App Router application with landing, email/password signup, username-or-email/password login, protected account page, sign-out, and password recovery/update routes.
 - Cookie-based Supabase SSR client and Next.js 16 `proxy.ts` session refresh.
-- Protected `/account` and `/mfa` requests validate the JWT `session_id` against the live `auth.sessions` row; revoked or expired sessions are rejected before the page or server action runs.
+- Protected `/account` and `/mfa` requests validate the JWT `session_id` against the live `auth.sessions` row; revoked or expired sessions are rejected before the page or server action runs. The same check is enforced by the central profile's RLS policies and both session-management RPCs, including direct Data API calls.
 - Session & device management: list active Auth sessions, revoke one other session, or sign out all other devices. Normal sign-out affects only the current browser.
 - Central account profile, service registry, service-access, security-event, and device-trust database foundation.
 - Existing Auth users are backfilled; new Auth users are automatically provisioned.
