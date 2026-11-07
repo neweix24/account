@@ -33,24 +33,34 @@ export async function signUp(formData: FormData) {
 }
 
 export async function signIn(formData: FormData) {
-  const email = value(formData, "email").toLowerCase();
+  const identifier = value(formData, "identifier").toLowerCase();
   const password = String(formData.get("password") ?? "");
-  if (!email || !password) redirect("/login?error=Enter%20your%20email%20and%20password.");
+  if (!identifier || !password) redirect("/login?error=Enter%20your%20username%20or%20email%20and%20password.");
 
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error || !data.user) redirect("/login?error=Sign-in%20failed.%20Check%20your%20credentials%20and%20verification.");
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!supabaseUrl || !publishableKey) redirect("/login?error=Sign-in%20is%20temporarily%20unavailable.");
 
-  const { data: account } = await supabase
-    .from("neweix_accounts")
-    .select("account_status")
-    .eq("user_id", data.user.id)
-    .maybeSingle();
+  const { headers } = await import("next/headers");
+  const requestHeaders = await headers();
+  const clientIp = requestHeaders.get("cf-connecting-ip") ?? "unknown";
+  const response = await fetch(`${supabaseUrl}/functions/v1/neweix-username-login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: publishableKey },
+    body: JSON.stringify({ identifier, password, clientIp }),
+    cache: "no-store",
+  });
 
-  if (account?.account_status !== "active") {
-    await supabase.auth.signOut();
-    redirect("/login?error=This%20account%20is%20not%20currently%20active.");
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.access_token || !result.refresh_token) {
+    redirect(`/login?error=${encodeURIComponent(result.error ?? "Sign-in failed. Check your credentials and verification.")}`);
   }
+
+  const { error } = await supabase.auth.setSession({
+    access_token: result.access_token,
+    refresh_token: result.refresh_token,
+  });
+  if (error) redirect("/login?error=Sign-in%20failed.%20Please%20try%20again.");
   redirect("/account");
 }
 
