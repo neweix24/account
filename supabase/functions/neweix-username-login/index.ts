@@ -21,7 +21,7 @@ async function sha256(value: string) {
 }
 
 async function recordLoginEvent(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   input: {
     userId: string | null;
     eventType: "login_success" | "login_failure";
