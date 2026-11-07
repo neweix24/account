@@ -36,6 +36,7 @@ Neweix Account is the central identity and authentication platform for first-par
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - `NEXT_PUBLIC_SITE_URL`
+- `LOGIN_RATE_LIMIT_HMAC_SECRET` (optional, server-only; use the same value in the Account host and Supabase Edge Function to enable client-IP throttling)
 
 A Supabase secret/service-role key must only exist in server-side secrets and must never use a `NEXT_PUBLIC_` prefix.
 
