@@ -20,6 +20,26 @@ async function sha256(value: string) {
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+async function recordLoginEvent(
+  admin: ReturnType<typeof createClient>,
+  input: {
+    userId: string | null;
+    eventType: "login_success" | "login_failure";
+    ipHash: string | null;
+    userAgent: string | null;
+    metadata: Record<string, string>;
+  },
+) {
+  const { error } = await admin.rpc("neweix_record_login_security_event", {
+    p_user_id: input.userId,
+    p_event_type: input.eventType,
+    p_ip_hash: input.ipHash,
+    p_user_agent: input.userAgent,
+    p_metadata: input.metadata,
+  });
+  if (error) console.error("Account login audit event could not be recorded:", error.message);
+}
+
 async function verifyClientIpProof(ip: string, proof: string, secret: string) {
   if (!ip || !/^[a-f0-9]{64}$/i.test(proof)) return false;
   try {
@@ -72,14 +92,23 @@ Deno.serve(async (request: Request) => {
 
     const identifierHash = await sha256(identifier);
     const ipHashSecret = Deno.env.get("LOGIN_RATE_LIMIT_HMAC_SECRET");
-    const trustedIp = ipHashSecret && await verifyClientIpProof(clientIp, clientIpProof, ipHashSecret);
-    const ipHash = trustedIp ? await sha256(`${ipHashSecret}:${clientIp}`) : identifierHash;
+    const trustedIp = Boolean(ipHashSecret && await verifyClientIpProof(clientIp, clientIpProof, ipHashSecret));
+    const ipHash = trustedIp ? await sha256(`${ipHashSecret}:${clientIp}`) : null;
+    const rateLimitIpHash = ipHash ?? identifierHash;
+    const userAgent = request.headers.get("user-agent");
 
     const { data: allowed, error: rateError } = await admin.rpc("neweix_consume_login_rate_limit", {
       p_identifier_hash: identifierHash,
-      p_ip_hash: ipHash,
+      p_ip_hash: rateLimitIpHash,
     });
     if (rateError || allowed !== true) {
+      await recordLoginEvent(admin, {
+        userId: null,
+        eventType: "login_failure",
+        ipHash,
+        userAgent,
+        metadata: { reason: "rate_limited" },
+      });
       return json(429, { error: "Too many sign-in attempts. Try again in 15 minutes." });
     }
 
@@ -100,6 +129,13 @@ Deno.serve(async (request: Request) => {
     }
 
     if (lookupError || !account?.email || account.account_status !== "active") {
+      await recordLoginEvent(admin, {
+        userId: account?.user_id ?? null,
+        eventType: "login_failure",
+        ipHash,
+        userAgent,
+        metadata: { reason: "account_lookup_or_status" },
+      });
       return json(401, { error: "Sign-in failed. Check your credentials and verification." });
     }
 
@@ -109,13 +145,36 @@ Deno.serve(async (request: Request) => {
       body: JSON.stringify({ email: account.email, password }),
     });
     if (!authResponse.ok) {
+      await recordLoginEvent(admin, {
+        userId: account.user_id,
+        eventType: "login_failure",
+        ipHash,
+        userAgent,
+        metadata: { reason: "invalid_credentials" },
+      });
       return json(401, { error: "Sign-in failed. Check your credentials and verification." });
     }
 
     const session = await authResponse.json();
     if (!session?.access_token || !session?.refresh_token || session?.user?.id !== account.user_id) {
+      await recordLoginEvent(admin, {
+        userId: account.user_id,
+        eventType: "login_failure",
+        ipHash,
+        userAgent,
+        metadata: { reason: "invalid_auth_session_response" },
+      });
       return json(401, { error: "Sign-in failed. Check your credentials and verification." });
     }
+
+    await recordLoginEvent(admin, {
+      userId: account.user_id,
+      eventType: "login_success",
+      ipHash,
+      userAgent,
+      metadata: { method: "password", identifier_type: isEmail ? "email" : "username" },
+    });
+
     return json(200, {
       access_token: session.access_token,
       refresh_token: session.refresh_token,
