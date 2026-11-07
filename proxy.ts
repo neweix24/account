@@ -36,7 +36,8 @@ export async function proxy(request: NextRequest) {
   });
 
   // Keep the standard SSR refresh flow intact before checking the live session row.
-  const { data: { claims }, error: claimsError } = await supabase.auth.getClaims();
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
+  const claims = claimsData?.claims;
 
   if (!isProtectedPath(request.nextUrl.pathname)) return response;
   if (claimsError || !claims || typeof claims.session_id !== "string") {
