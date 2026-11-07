@@ -235,4 +235,7 @@ comment on table public.account is
 comment on column public.account.public_id is
   'Unique public Account identifier with the a prefix. Employee and Supreme identities are owned by their separate identity systems.';
 
+-- Refresh PostgREST after the canonical table rename so the login function sees public.account.
+notify pgrst, 'reload schema';
+
 commit;
