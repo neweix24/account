@@ -21,7 +21,7 @@ Neweix Account is the central identity and authentication platform for first-par
 - Central Account profile, unique Account ID, service registry, service-access, security-event, and device-trust database foundation.
 - Existing Auth users are provisioned without changing their UUIDs or credentials.
 - Public profile access is owner-scoped with RLS and column-level update grants. Private service/security tables are inaccessible to client roles.
-- Existing Neweix commerce and Eixon wallet/ledger domain data remain owned by their respective services; only identity/profile fields are centralized in Account.
+- Commerce and other service-owned business data remain in their respective services; only central identity/profile fields are owned by Account.
 
 ## Authentication policy
 

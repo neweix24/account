@@ -1,5 +1,5 @@
 -- Consolidate the legacy customer profile and central identity into public.account.
--- Auth users, credentials, sessions, MFA factors, Eixon ledgers, orders and service data are preserved.
+-- Auth users, credentials, sessions, MFA factors and service-owned business data are preserved.
 begin;
 
 alter table public.neweix_accounts rename to account;
@@ -107,6 +107,7 @@ begin
     join pg_namespace n on n.oid = p.pronamespace
     where p.prokind = 'f'
       and n.nspname in ('public', 'private')
+      and p.proname not like 'eixpay_%'
       and pg_get_functiondef(p.oid) ilike '%customer_profiles%'
   loop
     v_definition := pg_get_functiondef(r.oid);
@@ -126,7 +127,9 @@ begin
 end;
 $$;
 
-drop table public.customer_profiles;
+-- Keep the legacy profile relation temporarily for external service consumers.
+-- The Account repository does not migrate or modify Eixon-owned routines/data.
+-- Remove this compatibility table only after every external service has migrated its own code to public.account.
 
 comment on table public.account is
   'Canonical Neweix Account identity profile. Supabase Auth remains the credential authority; service-specific authorization is stored separately.';
