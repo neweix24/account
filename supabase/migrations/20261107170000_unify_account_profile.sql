@@ -204,6 +204,7 @@ begin
     where p.prokind = 'f'
       and n.nspname in ('public', 'private')
       and p.proname not like 'eixpay_%'
+      and p.proname <> 'neweix_generate_public_id'
       and pg_get_functiondef(p.oid) ilike '%customer_profiles%'
   loop
     v_definition := pg_get_functiondef(r.oid);
