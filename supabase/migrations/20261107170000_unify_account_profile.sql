@@ -160,7 +160,7 @@ begin
     phone_verified_at = excluded.phone_verified_at;
   return new;
 end;
-$;
+$$;
 
 -- Also handle the case where Supreme creates its Auth user first and inserts its
 -- supreme.identities row afterwards: remove any transient Account-side records.
@@ -169,7 +169,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 begin
   delete from private.neweix_account_service_access
    where user_id = new.user_id;
@@ -181,7 +181,7 @@ begin
    where user_id = new.user_id;
   return new;
 end;
-$;
+$$;
 
 revoke all on function private.exclude_supreme_identity_from_neweix_account() from public, anon, authenticated;
 drop trigger if exists exclude_supreme_identity_from_neweix_account on supreme.identities;
