@@ -7,8 +7,9 @@ export async function GET(request: NextRequest) {
   const tokenHash = url.searchParams.get("token_hash");
   const type = url.searchParams.get("type") as EmailOtpType | null;
   const next = url.searchParams.get("next") ?? "/account";
+  const nextUrl = new URL(next, url.origin);
 
-  if (!tokenHash || !type || !next.startsWith("/") || next.startsWith("//")) {
+  if (!tokenHash || !type || nextUrl.origin !== url.origin) {
     return NextResponse.redirect(new URL("/login?error=Invalid%20confirmation%20link.", url.origin));
   }
 
