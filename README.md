@@ -1,6 +1,6 @@
 # Neweix Account
 
-Neweix Account is the central identity and authentication platform for first-party Neweix services. Users create one Neweix Account and use it across approved services. Google, Facebook, and other social identity providers are not part of the sign-in design.
+Neweix Account is the central **customer identity and authentication platform** for first-party Neweix services. Customers create one Neweix Account and use it across approved services. Employee identities and the Supreme identity remain separate systems. Google, Facebook, and other social identity providers are not part of the sign-in design.
 
 ## Current architecture
 
