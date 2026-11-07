@@ -23,7 +23,7 @@ Target project: the existing **Neweix** Supabase project. Do not create a separa
 1. Apply the Account foundation, private-data lockdown, username rate-limit, session, live-session, password-audit, and profile-consolidation migrations in repository order.
 2. The profile-consolidation migration renames `public.neweix_accounts` to `public.account`, preserves existing usernames and Auth UUIDs, and merges legacy profile fields without deleting Auth users or credentials.
 3. The legacy `public.customer_profiles` relation is retained temporarily because Eixon-owned routines still depend on it. Do not drop or truncate it as part of Account work. Eixon must migrate those routines independently.
-4. Supreme identities are separate from Neweix Account and employee identities. Do not provision Supreme in `public.account` or `public.staff_profiles`.
+4. Neweix Account is customer-only. The Account signup flow marks new Auth users with `identity_type=customer`; the database provisions only those customer identities. Employee identities and Supreme identities remain separate systems. Do not provision either in `public.account` or `public.staff_profiles`.
 
 ## Username login rate limiting
 
@@ -54,7 +54,8 @@ Then install from the pinned `package.json`, run typecheck/lint/build, deploy, a
 ## Acceptance tests
 
 - A new email/password user receives a verification email and cannot use protected account pages before verification.
-- A successful confirmation provisions exactly one `public.account` row.
+- A successful customer confirmation provisions exactly one `public.account` row.
+- Employee and Supreme Auth identities never receive a `public.account` row.
 - Existing Account usernames, Auth UUIDs, credentials, and sessions remain unchanged during profile consolidation.
 - Duplicate usernames and duplicate email addresses fail safely.
 - Invalid credentials return a generic error without revealing whether an account exists.
