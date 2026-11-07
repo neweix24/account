@@ -33,7 +33,7 @@ Deno.serve(async (request: Request) => {
     const payload = await request.json();
     const identifier = String(payload?.identifier ?? "").trim().toLowerCase();
     const password = String(payload?.password ?? "");
-    const ip = String(payload?.clientIp ?? "unknown").slice(0, 100);
+
 
     if (!identifier || identifier.length > 254 || !password || password.length > 1024) {
       return json(400, { error: "Sign-in failed. Check your credentials and verification." });
@@ -52,13 +52,12 @@ Deno.serve(async (request: Request) => {
     const publishableKey = publishableMapRaw ? JSON.parse(publishableMapRaw).default : legacyPublishable;
     const admin = createClient(projectUrl, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
-    const [identifierHash, ipHash] = await Promise.all([
-      sha256(identifier),
-      sha256(ip),
-    ]);
+    // The public function cannot trust a caller-supplied IP header/body.
+    // Throttle by a one-way identifier hash only; never persist raw identifiers.
+    const identifierHash = await sha256(identifier);
     const { data: allowed, error: rateError } = await admin.rpc("neweix_consume_login_rate_limit", {
       p_identifier_hash: identifierHash,
-      p_ip_hash: ipHash,
+      p_ip_hash: identifierHash,
     });
     if (rateError || allowed !== true) {
       return json(429, { error: "Too many sign-in attempts. Try again in 15 minutes." });
