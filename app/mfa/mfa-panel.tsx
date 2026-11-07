@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { beginTotpEnrollment, removeTotpFactor, verifyTotp } from "@/app/mfa/actions";
 
 type Factor = {
@@ -17,6 +19,7 @@ export default function MfaPanel({
   mode: "settings" | "challenge";
   factors?: Factor[];
 }) {
+  const router = useRouter();
   const [factorId, setFactorId] = useState("");
   const [qrCode, setQrCode] = useState("");
   const [secret, setSecret] = useState("");
@@ -44,7 +47,7 @@ export default function MfaPanel({
       void (async () => {
         const result = await verifyTotp(factorId || verified[0]?.id || "", code.trim());
         if (!result.ok) return setError(result.error);
-        window.location.assign("/account");
+        router.replace("/account");
       })();
     });
   }
@@ -118,12 +121,15 @@ export default function MfaPanel({
             <>
               <p className="muted">Scan this QR code using an authenticator app, then enter the generated code.</p>
               <div className="qr-wrap">
-                <img
+                <Image
                   alt="Authenticator setup QR code"
                   src={"data:image/svg+xml;charset=utf-8," + encodeURIComponent(qrCode)}
+                  width={240}
+                  height={240}
+                  unoptimized
                 />
               </div>
-              <p className="fine">Can't scan? Enter this setup key manually:</p>
+              <p className="fine">Cannot scan? Enter this setup key manually:</p>
               <code className="secret-key">{secret}</code>
               <label>
                 Authenticator code
