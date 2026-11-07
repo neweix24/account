@@ -34,7 +34,6 @@ Deno.serve(async (request: Request) => {
     const identifier = String(payload?.identifier ?? "").trim().toLowerCase();
     const password = String(payload?.password ?? "");
 
-
     if (!identifier || identifier.length > 254 || !password || password.length > 1024) {
       return json(400, { error: "Sign-in failed. Check your credentials and verification." });
     }
@@ -52,8 +51,6 @@ Deno.serve(async (request: Request) => {
     const publishableKey = publishableMapRaw ? JSON.parse(publishableMapRaw).default : legacyPublishable;
     const admin = createClient(projectUrl, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
-    // The public function cannot trust a caller-supplied IP header/body.
-    // Throttle by a one-way identifier hash only; never persist raw identifiers.
     const identifierHash = await sha256(identifier);
     const { data: allowed, error: rateError } = await admin.rpc("neweix_consume_login_rate_limit", {
       p_identifier_hash: identifierHash,
@@ -64,10 +61,10 @@ Deno.serve(async (request: Request) => {
     }
 
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
-    const profileQuery = admin.from("neweix_accounts").select("user_id,email,account_status");
+    const accountQuery = admin.from("account").select("user_id,email,account_status");
     const { data: account, error: lookupError } = isEmail
-      ? await profileQuery.ilike("email", identifier).maybeSingle()
-      : await profileQuery.eq("username", identifier).maybeSingle();
+      ? await accountQuery.ilike("email", identifier).maybeSingle()
+      : await accountQuery.eq("username", identifier).maybeSingle();
 
     if (lookupError || !account?.email || account.account_status !== "active") {
       return json(401, { error: "Sign-in failed. Check your credentials and verification." });
