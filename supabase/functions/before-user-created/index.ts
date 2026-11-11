@@ -1,7 +1,7 @@
 import * as Sentry from "npm:@sentry/deno@11.9.0";
 
 const SENTRY_DSN = Deno.env.get("SENTRY_DSN") ?? "https://4a80e5b20d5f93801845e87071a1e612@o4512412827058176.ingest.us.sentry.io/4512412888530944";
-Sentry.init({ dsn: SENTRY_DSN, defaultIntegrations: false, sendDefaultPii: false, tracesSampleRate: 0, environment: Deno.env.get("SENTRY_ENVIRONMENT") ?? "production" });
+Sentry.init({ dsn: SENTRY_DSN, defaultIntegrations: false, tracesSampleRate: 0, environment: Deno.env.get("SENTRY_ENVIRONMENT") ?? "production" });
 
 async function reportSentryError(error: unknown, functionName: string, requestId?: string | null): Promise<void> {
   Sentry.withScope((scope) => {
