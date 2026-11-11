@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -34,6 +35,7 @@ export async function proxy(request: NextRequest) {
       },
     },
   });
+  Sentry.instrumentSupabaseClient(supabase);
 
   // Keep the standard SSR refresh flow intact before checking the live session row.
   const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();

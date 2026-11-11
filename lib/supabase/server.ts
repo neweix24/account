@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
@@ -10,7 +11,7 @@ export async function createClient() {
     throw new Error("Supabase environment variables are not configured.");
   }
 
-  return createServerClient(url, key, {
+  const client = createServerClient(url, key, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -26,4 +27,6 @@ export async function createClient() {
       },
     },
   });
+  Sentry.instrumentSupabaseClient(client);
+  return client;
 }

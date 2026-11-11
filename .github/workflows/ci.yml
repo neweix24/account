@@ -44,6 +44,8 @@ jobs:
 
       - name: Check Supabase Edge Function
         run: deno check supabase/functions/neweix-username-login/index.ts
+      - name: Check Supabase auth hook Edge Function
+        run: deno check supabase/functions/before-user-created/index.ts
 
       - name: Lint
         run: npm run lint
