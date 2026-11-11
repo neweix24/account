@@ -1,3 +1,9 @@
+import * as Sentry from "npm:@sentry/deno@11.9.0";
+const SENTRY_DSN = Deno.env.get("SENTRY_DSN") ?? "https://4a80e5b20d5f93801845e87071a1e612@o4512412827058176.ingest.us.sentry.io/4512412888530944";
+Sentry.init({ dsn: SENTRY_DSN, defaultIntegrations: false, sendDefaultPii: false, tracesSampleRate: 0, environment: Deno.env.get("SENTRY_ENVIRONMENT") ?? "production" });
+async function reportSentryError(error: unknown, functionName: string, requestId?: string | null): Promise<void> { Sentry.withScope((scope) => { scope.setTag("service", "neweix-account"); scope.setTag("supabase_function", functionName); const region = Deno.env.get("SB_REGION"); const executionId = Deno.env.get("SB_EXECUTION_ID"); if (region) scope.setTag("region", region); if (executionId) scope.setExtra("execution_id", executionId); if (requestId) scope.setTag("request_id", requestId); Sentry.captureException(error); }); await Sentry.flush(2000); }
+function withSentry(functionName: string, handler: (request: Request) => Response | Promise<Response>): (request: Request) => Promise<Response> { return async (request: Request): Promise<Response> => { try { const result = await handler(request); if (result.status >= 500) await reportSentryError(new Error(`${functionName} returned HTTP ${result.status}`), functionName, result.headers.get("x-request-id")); return result; } catch (error) { await reportSentryError(error, functionName, request.headers.get("x-request-id")); return new Response(JSON.stringify({ error: { code: "INTERNAL_ERROR" } }), { status: 500, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } }); } }; }
+
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -57,7 +63,7 @@ async function verifyClientIpProof(ip: string, proof: string, secret: string) {
   }
 }
 
-Deno.serve(async (request: Request) => {
+Deno.serve(withSentry("neweix-username-login", async (request: Request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return json(405, { error: "Sign-in failed." });
 
@@ -181,7 +187,8 @@ Deno.serve(async (request: Request) => {
       expires_in: session.expires_in,
       token_type: session.token_type,
     });
-  } catch {
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) await reportSentryError(error, "neweix-username-login");
     return json(400, { error: "Sign-in failed. Check your credentials and verification." });
   }
-});
+}));
