@@ -34,3 +34,13 @@ For the eventual production hostname, set `AUTH_COOKIE_DOMAIN=.neweix.com` so th
 - Preview send/verify requests return HTTP 503 until OTP forwarding is explicitly enabled.
 - The preview Worker has no production custom domain or DNS route.
 - Production Worker code, secrets, DNS, and custom-domain assignments are not modified by this repository setup.
+
+## Preview deployment status
+
+- Cloudflare preview Worker `neweix-account-preview` has been created with a temporary HTTP 503 placeholder.
+- The Worker has a workers.dev endpoint enabled and no custom domain or DNS route.
+- A Cloudflare Workers Builds connection is configured for the private `neweix24/account` repository.
+- Pull-request branches build as isolated Cloudflare Worker Previews.
+- The configured production deploy command is deliberately a no-op; this preview-only Worker cannot deploy the main branch to production.
+- The current feature branch's next commit will trigger the first preview build.
+- OTP send/verify remains disabled by `PHONE_OTP_FORWARDING_ENABLED=false`.
