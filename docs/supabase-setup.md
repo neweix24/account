@@ -2,6 +2,11 @@
 
 Target project: the existing **Neweix** Supabase project. Do not create a separate database and do not apply Account migrations to Eixon.
 
+
+## Messaging providers
+
+See [Messaging Providers](./messaging-providers.md) for the Resend SMTP configuration, BulkSMSBD Send SMS Auth Hook, required server-side secrets, deployment steps, and acceptance tests. Do not enable phone authentication until the SMS hook is configured and tested.
+
 ## Required Auth settings before production
 
 1. In Authentication → Providers, keep Email enabled. Disable Google, Facebook, and every other social provider only after existing users who rely on those identities have set an email password or have been explicitly confirmed as disposable. This is an explicit product requirement; do not lock existing customers out during migration.
