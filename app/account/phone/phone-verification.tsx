@@ -2,31 +2,19 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 
-type ApiPayload = {
-  error?: string;
-  message?: string;
-  challengeId?: string;
-  challenge_id?: string;
-  data?: {
-    challengeId?: string;
-    challenge_id?: string;
-    phone?: string;
-    verified?: boolean;
-    isVerified?: boolean;
-    is_verified?: boolean;
-    status?: string;
-    phone_verified?: boolean;
-  };
-  phone?: string;
-  verified?: boolean;
-  isVerified?: boolean;
-  is_verified?: boolean;
-  status?: string;
+type PhoneApiResponse = {
   success?: boolean;
-  phone_verified?: boolean;
+  verified?: boolean;
+  phone?: string | null;
+  maskedPhone?: string | null;
+  challengeId?: string;
+  expiresIn?: number;
+  resendAfter?: number;
+  message?: string;
+  error?: string;
 };
 
-async function apiRequest(path: string, init?: RequestInit): Promise<ApiPayload> {
+async function apiRequest(path: string, init?: RequestInit): Promise<PhoneApiResponse> {
   const response = await fetch(path, {
     ...init,
     credentials: "same-origin",
@@ -38,25 +26,13 @@ async function apiRequest(path: string, init?: RequestInit): Promise<ApiPayload>
     },
   });
 
-  const payload = await response.json().catch(() => ({})) as ApiPayload;
+  const payload = await response.json().catch(() => ({})) as PhoneApiResponse;
   if (!response.ok) {
     throw new Error(payload.error || payload.message || (response.status === 401
       ? "Your session has expired. Sign in again."
       : "The phone verification service could not complete the request."));
   }
   return payload;
-}
-
-function getChallengeId(payload: ApiPayload) {
-  return payload.challengeId || payload.challenge_id ||
-    payload.data?.challengeId || payload.data?.challenge_id || "";
-}
-
-function isVerified(payload: ApiPayload) {
-  return payload.verified === true || payload.isVerified === true ||
-    payload.is_verified === true || payload.data?.verified === true ||
-    payload.data?.isVerified === true || payload.data?.is_verified === true || payload.phone_verified === true || payload.data?.phone_verified === true ||
-    payload.status === "verified" || payload.data?.status === "verified";
 }
 
 export default function PhoneVerification() {
@@ -74,9 +50,12 @@ export default function PhoneVerification() {
     let active = true;
     apiRequest("/api/account/phone/status")
       .then((payload) => {
+        if (!payload.success || typeof payload.verified !== "boolean") {
+          throw new Error(payload.message || "The phone verification service returned an invalid status response.");
+        }
         if (!active) return;
-        setVerified(isVerified(payload));
-        setVerifiedPhone(payload.phone || payload.data?.phone || "");
+        setVerified(payload.verified);
+        setVerifiedPhone(payload.phone || payload.maskedPhone || "");
       })
       .catch((reason: unknown) => {
         if (!active) return;
@@ -104,11 +83,13 @@ export default function PhoneVerification() {
         method: "POST",
         body: JSON.stringify({ phone: normalized }),
       });
-      const id = getChallengeId(payload);
-      if (!id) throw new Error("The SMS service did not return a verification challenge. No OTP screen can continue safely.");
-      setChallengeId(id);
+      if (payload.success !== true || !payload.challengeId || !/^[0-9a-f-]{36}$/i.test(payload.challengeId)) {
+        throw new Error(payload.message || "The SMS service did not return a valid verification challenge.");
+      }
+      setPhone(normalized);
+      setChallengeId(payload.challengeId);
       setOtp("");
-      setMessage(payload.message || "A verification code was requested. Check your phone.");
+      setMessage(payload.message || "A verification code has been sent to your phone.");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not send the verification code.");
     } finally {
@@ -131,11 +112,11 @@ export default function PhoneVerification() {
         method: "POST",
         body: JSON.stringify({ challengeId, otp }),
       });
-      if (!isVerified(payload) && payload.success !== true && payload.status !== "success" && payload.data?.status !== "success") {
-        throw new Error(payload.message || "The code was not confirmed as verified. Check your account status before retrying.");
+      if (payload.success !== true || typeof payload.phone !== "string") {
+        throw new Error(payload.message || "The phone verification service did not confirm this number.");
       }
       setVerified(true);
-      setVerifiedPhone(phone);
+      setVerifiedPhone(payload.phone);
       setChallengeId("");
       setOtp("");
       setMessage(payload.message || "Your phone number is verified.");
