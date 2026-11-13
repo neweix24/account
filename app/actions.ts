@@ -16,16 +16,19 @@ export async function signUp(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
-  if (!fullName || !/^[a-z0-9_][a-z0-9_.-]{2,29}$/.test(username) || !email || password.length < 12 || password !== confirmPassword) {
-    redirect("/signup?error=Check%20your%20details.%20Passwords%20must%20match%20and%20contain%20at%20least%2012%20characters.");
+  if (!fullName || !/^[a-z0-9_]{3,20}$/.test(username) || !email || password.length < 12 || password !== confirmPassword) {
+    redirect("/signup?error=Check%20your%20details.%20Username%20must%20be%203%E2%80%9320%20characters%20and%20passwords%20must%20match.");
   }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!siteUrl) redirect("/signup?error=Sign-up%20is%20temporarily%20unavailable.");
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/auth/confirm`,
+      emailRedirectTo: `${siteUrl}/auth/confirm`,
       data: { full_name: fullName, username, identity_type: "customer" },
     },
   });
@@ -57,8 +60,6 @@ export async function signIn(formData: FormData) {
     apikey: publishableKey,
   };
 
-  // The Edge Function accepts the client IP for its IP bucket only when the
-  // Account server signs it with a shared server-only secret.
   if (rateLimitSecret && clientIp) {
     requestBody.clientIp = clientIp;
     requestHeadersForFunction["x-neweix-client-ip-proof"] = createHmac("sha256", rateLimitSecret)
@@ -78,7 +79,6 @@ export async function signIn(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent(result.error ?? "Sign-in failed. Check your credentials and verification.")}`);
   }
 
-  // Establish the returned Auth session in the same cookie-aware SSR client.
   const { error } = await supabase.auth.setSession({
     access_token: result.access_token,
     refresh_token: result.refresh_token,
@@ -91,7 +91,6 @@ export async function signIn(formData: FormData) {
 
 export async function signOut() {
   const supabase = await createClient();
-  // A normal sign-out should affect this browser only, not every signed-in device.
   await supabase.auth.signOut({ scope: "local" });
   redirect("/login");
 }
@@ -100,10 +99,12 @@ export async function requestPasswordReset(formData: FormData) {
   const email = value(formData, "email").toLowerCase();
   if (!email) redirect("/reset-password?message=If%20the%20account%20exists,%20a%20recovery%20email%20will%20be%20sent.");
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!siteUrl) redirect("/reset-password?message=If%20the%20account%20exists,%20a%20recovery%20email%20will%20be%20sent.");
+
   const supabase = await createClient();
   await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/auth/update-password`,
+    redirectTo: `${siteUrl}/auth/update-password`,
   });
-  // Deliberately identical response prevents account enumeration.
   redirect("/reset-password?message=If%20the%20account%20exists,%20a%20recovery%20email%20will%20be%20sent.");
 }
