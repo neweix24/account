@@ -1,46 +1,51 @@
-# Domain Configuration
+# Neweix Account domain and deployment
 
-- **Service:** Central Account identity and authentication service
-- **Intended production hostname:** https://accounts.neweix.com
-- **GitHub repository:** https://github.com/neweix24/account
-- **DNS zone:** `neweix.com`
+- **Canonical Account URL:** https://www.accounts.neweix.com
+- **Repository:** https://github.com/neweix24/account
+- **Cloudflare zone:** `neweix.com`
+- **Preview Worker:** `neweix-account-preview`
 
-## Verified current Cloudflare topology
+## Current routing
 
-The Cloudflare custom domain `accounts.neweix.com` is currently attached to the existing Worker service `neweix` in its production environment. The same Worker also serves several other Neweix subdomains, including `www`, `shop`, `connect`, `employees`, `eixon`, and `eixora`.
+The canonical `www.accounts.neweix.com` hostname is attached to the dedicated `neweix-account-preview` Worker. The zone redirects non-`www` HTTP hostnames to their corresponding `www` hostnames with a permanent redirect.
 
-The deployed `neweix` Worker is an OpenNext/Next.js application (its deployed bundle contains Next App Router route modules and the OpenNext server runtime). It already contains the authenticated phone-verification API routes and the BulkSMSBD integration. Its current bindings include the BulkSMSBD secret, Supabase configuration, and other production service credentials.
+The legacy `accounts.neweix.com` hostname remains attached to the shared `neweix` Worker, but browser requests are redirected to `www.accounts.neweix.com`. Do not detach the legacy binding or change DNS without a separately verified cutover plan.
 
-This repository is a separate Next.js Account application. It is **not** currently the source tree proven to be deployed as the existing `neweix` Worker. Do not assume that merging this repository automatically updates the production Worker.
+## Username policy
 
-## Safe deployment plan
+- Usernames are unique, 3–20 characters, and contain only lowercase English letters, digits, and underscores.
+- A user may change their username once every 30 days.
+- Every relinquished username remains reserved for its former owner for 90 days. The former owner may reclaim it during that period, subject to the 30-day change cooldown. Reservation records are private and survive deletion of the former Auth user until expiry.
+- Username changes must use the authenticated Account RPC; direct client updates to `username` and `username_changed_at` are revoked.
 
-1. Build and preview this repository as a separate Worker named `neweix-account-preview` on its `workers.dev` hostname. The Wrangler config intentionally does not claim any production custom domain or DNS route.
-2. Use a Cloudflare service binding named `NEWEIX_BACKEND` to call the existing `neweix` Worker for the three phone-verification API routes. Forward the signed-in user's session cookie server-to-server; do not expose provider or service-role secrets to the browser.
-3. Keep phone OTP send/verify forwarding disabled on preview by default. The status route can be checked without sending SMS. Enable OTP mutations only in an explicitly configured production environment after acceptance tests.
-4. Validate sign-in, session refresh, status lookup, OTP send/verify, and logout on the preview hostname.
-5. Only after validation, plan a controlled hostname cutover for `accounts.neweix.com`. The existing Worker currently owns that hostname, so do not add a competing custom domain, detach the current domain, or change DNS as part of preview work.
+## Service boundaries
 
-## Session cookies
+This repository contains the separate Neweix Account Next.js application. The shared `neweix` Worker remains the owner of existing production services and authenticated phone-verification API operations. Account calls those fixed phone API routes through the `NEWEIX_BACKEND` Cloudflare service binding. The browser never receives BulkSMSBD or Supabase service-role credentials.
 
-The Account app uses a host-only cookie on the `workers.dev` preview hostname. This allows the preview app to manage its own Supabase session without trying to set a `.neweix.com` cookie from an unrelated hostname.
+## Preview safety
 
-For the eventual production hostname, set `AUTH_COOKIE_DOMAIN=.neweix.com` so the Account app shares the intended Neweix session scope. The service-binding proxy preserves the session cookie when calling the existing Worker and rewrites any refreshed cookie domain to match the Account environment.
+- Worker name remains `neweix-account-preview`; this repository must not deploy over the shared `neweix` Worker.
+- Phone OTP send and verify are disabled by default with `PHONE_OTP_FORWARDING_ENABLED=false`.
+- The preview can read phone-verification status through the authenticated backend route.
+- OTP mutations return HTTP 503 until explicitly enabled in a controlled environment.
+- The preview Worker uses host-only Supabase cookies on `workers.dev`.
+- Callback origins are derived from the incoming allowed `workers.dev` host for isolated preview deployments. The production callback origin is `https://www.accounts.neweix.com`.
 
-## Preview safety controls
+## Build verification status
 
-- `PHONE_OTP_FORWARDING_ENABLED` defaults to `false` in Wrangler configuration.
-- Preview status requests can reach the existing authenticated status endpoint.
-- Preview send/verify requests return HTTP 503 until OTP forwarding is explicitly enabled.
-- The preview Worker has no production custom domain or DNS route.
-- Production Worker code, secrets, DNS, and custom-domain assignments are not modified by this repository setup.
+- Cloudflare Worker `neweix-account-preview` exists with its `workers.dev` endpoint, but the Cloudflare Builds API currently reports no build configuration, no repository connection, and no recorded builds for this Worker. Do not describe the preview as built or deployed from this repository yet.
+- GitHub Actions run 104 for PR #7 failed before any workflow steps were recorded; the job has no runner ID or downloadable logs. This is not evidence that the application build passed or failed at a source-code step.
+- No production Worker deployment, custom-domain cutover, or DNS change is authorized by this preview work.
 
-## Preview deployment status
 
-- Cloudflare preview Worker `neweix-account-preview` has been created with a temporary HTTP 503 placeholder.
-- The Worker has a workers.dev endpoint enabled and no custom domain or DNS route.
-- A Cloudflare Workers Builds connection is configured for the private `neweix24/account` repository.
-- Pull-request branches build as isolated Cloudflare Worker Previews.
-- The configured production deploy command is deliberately a no-op; this preview-only Worker cannot deploy the main branch to production.
-- The current feature branch's next commit will trigger the first preview build.
-- OTP send/verify remains disabled by `PHONE_OTP_FORWARDING_ENABLED=false`.
+## Live Cloudflare state verified 2026-11-13
+- Account `neweix-account-preview` is currently deployed in Cloudflare production environment. Its latest active deployment is 100% traffic on version `cd9dbc3d-a99d-4ee9-9942-b76649c4c770` (deployment `85127731-f495-4019-b4d3-3d81dca44c38`).
+- Both `accounts.neweix.com` and `www.accounts.neweix.com` are attached as enabled production Worker domains to `neweix-account-preview`.
+- The deployed Worker currently has the production Supabase URL and publishable (anon) key, plus the `NEWEIX_BACKEND` service binding to the shared `neweix` Worker.
+- `PHONE_OTP_FORWARDING_ENABLED=false`; phone OTP send/verify mutations remain disabled.
+- This confirms the Account Worker is already live on the production hostname and connected to production Supabase. It does **not** constitute authenticated end-to-end acceptance testing or production security sign-off. Do not detach domains, replace the Worker, or enable OTP until the release gates below are completed.
+- Cloudflare account is on the Free Website plan. No paid Cloudflare feature or upgrade was used for this deployment.
+
+## Production readiness
+
+A successful GitHub build or preview deployment does not prove that production Auth redirect allowlists, password recovery, SMS delivery, or authenticated browser flows work. Before any production cutover, verify signup confirmation, username/email login, MFA, password recovery, session revocation, phone status, and the controlled OTP send/verify path using a test account. Do not enable OTP mutations until the provider flow has been acceptance-tested.

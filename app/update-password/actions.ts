@@ -6,8 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 export async function updatePassword(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
-  if (password.length < 12 || password !== confirmPassword) {
-    redirect("/update-password?error=Passwords%20must%20match%20and%20contain%20at%20least%2012%20characters.");
+  if (password.length < 12 || password.length > 128 || password !== confirmPassword) {
+    redirect("/update-password?error=Passwords%20must%20match%20and%20contain%2012%20to%20128%20characters.");
   }
 
   const supabase = await createClient();

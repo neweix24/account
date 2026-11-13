@@ -9,6 +9,20 @@ function value(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
 
+async function getSiteOrigin(): Promise<string | null> {
+  const requestHeaders = await headers();
+  const host = (requestHeaders.get("host") ?? "")
+    .split(",")[0]
+    .trim()
+    .toLowerCase();
+
+  if (host === "www.accounts.neweix.com") return "https://www.accounts.neweix.com";
+  if (host === "localhost:3000") return "http://localhost:3000";
+  if (/^[a-z0-9.-]+\.workers\.dev$/.test(host)) return `https://${host}`;
+
+  return process.env.NEXT_PUBLIC_SITE_URL ?? null;
+}
+
 export async function signUp(formData: FormData) {
   const fullName = value(formData, "fullName");
   const username = value(formData, "username").toLowerCase();
@@ -20,7 +34,7 @@ export async function signUp(formData: FormData) {
     redirect("/signup?error=Check%20your%20details.%20Username%20must%20be%203%E2%80%9320%20characters%20and%20passwords%20must%20match.");
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const siteUrl = await getSiteOrigin();
   if (!siteUrl) redirect("/signup?error=Sign-up%20is%20temporarily%20unavailable.");
 
   const supabase = await createClient();
@@ -99,7 +113,7 @@ export async function requestPasswordReset(formData: FormData) {
   const email = value(formData, "email").toLowerCase();
   if (!email) redirect("/reset-password?message=If%20the%20account%20exists,%20a%20recovery%20email%20will%20be%20sent.");
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const siteUrl = await getSiteOrigin();
   if (!siteUrl) redirect("/reset-password?message=If%20the%20account%20exists,%20a%20recovery%20email%20will%20be%20sent.");
 
   const supabase = await createClient();
@@ -107,4 +121,28 @@ export async function requestPasswordReset(formData: FormData) {
     redirectTo: `${siteUrl}/auth/update-password`,
   });
   redirect("/reset-password?message=If%20the%20account%20exists,%20a%20recovery%20email%20will%20be%20sent.");
+}
+
+export async function changeUsername(formData: FormData) {
+  const username = value(formData, "username").toLowerCase();
+  if (!/^[a-z0-9_]{3,20}$/.test(username)) {
+    redirect("/account?username_error=invalid_username");
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("neweix_change_account_username", {
+    p_username: username,
+  });
+
+  if (error) redirect("/account?username_error=temporarily_unavailable");
+  if (!data?.success) {
+    const code = typeof data?.code === "string" ? data.code : "temporarily_unavailable";
+    const allowed = new Set([
+      "session_required", "invalid_username", "account_unavailable", "same_username",
+      "cooldown", "username_taken", "username_reserved", "reservation_conflict",
+    ]);
+    redirect(`/account?username_error=${allowed.has(code) ? code : "temporarily_unavailable"}`);
+  }
+
+  redirect("/account?username_message=updated");
 }

@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "neweix-account",
+  "name": "neweix-account-preview",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-11-13",
   "compatibility_flags": [
@@ -20,7 +20,7 @@
   ],
   "vars": {
     "PHONE_OTP_FORWARDING_ENABLED": "false",
-    "NEXT_PUBLIC_SITE_URL": "https://accounts.neweix.com",
+    "NEXT_PUBLIC_SITE_URL": "https://www.accounts.neweix.com",
     "NEXT_PUBLIC_SUPABASE_URL": "https://grhybvlhdnzlopwbaqun.supabase.co",
     "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyaHlidmxoZG56bG9wd2JhcXVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2NDYyMjEsImV4cCI6MjEwODIyMjIyMX0.27nR0VFbxwVYQKb5A06BRwizp02CHAmoD9IRMwiJ0Ss"
   },
@@ -30,14 +30,10 @@
   "previews": {
     "vars": {
       "PHONE_OTP_FORWARDING_ENABLED": "false",
-      "NEXT_PUBLIC_SUPABASE_URL": "https://grhybvlhdnzlopwbaqun.supabase.co",
-      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyaHlidmxoZG5zbG9wd2JhcXVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2NDYyMjEsImV4cCI6MjEwODIyMjIyMX0.27nR0VFbxwVYQKb5A06BRwizp02CHAmoD9IRMwiJ0Ss"
+      "NEXT_PUBLIC_SUPABASE_URL": "https://preview-disabled.invalid",
+      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "preview-disabled",
+      "NEXT_PUBLIC_SITE_URL": "https://www.accounts.neweix.com"
     },
-    "services": [
-      {
-        "binding": "NEWEIX_BACKEND",
-        "service": "neweix"
-      }
-    ]
+    "services": []
   }
 }
