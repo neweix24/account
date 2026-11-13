@@ -85,8 +85,8 @@ export async function forwardPhoneApi(
     responseHeaders.delete("set-cookie");
     for (const cookie of cookieHeaders) {
       const adjusted = env.AUTH_COOKIE_DOMAIN
-        ? cookie.replace(/;\\s*Domain=[^;]+/i, `; Domain=${env.AUTH_COOKIE_DOMAIN}`)
-        : cookie.replace(/;\\s*Domain=[^;]+/i, "");
+        ? cookie.replace(/;\s*Domain=[^;]+/i, `; Domain=${env.AUTH_COOKIE_DOMAIN}`)
+        : cookie.replace(/;\s*Domain=[^;]+/i, "");
       responseHeaders.append("set-cookie", adjusted);
     }
   }
