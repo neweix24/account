@@ -46,10 +46,10 @@ jobs:
         run: deno check supabase/functions/neweix-username-login/index.ts
 
       - name: Check deployed Auth hook Edge Function
-        run: deno check supabase/functions/before-user-created/index.ts lib/auth/validation_test.ts
+        run: deno check supabase/functions/before-user-created/index.ts supabase/functions/neweix-username-login/password_validation_test.ts
 
       - name: Test username/email identifier classification
-        run: deno test supabase/functions/neweix-username-login/validation_test.ts lib/auth/validation_test.ts
+        run: deno test supabase/functions/neweix-username-login/validation_test.ts supabase/functions/neweix-username-login/password_validation_test.ts
 
       - name: Lint
         run: npm run lint
