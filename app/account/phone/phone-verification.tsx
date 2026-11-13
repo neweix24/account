@@ -1,0 +1,192 @@
+"use client";
+
+import { useEffect, useState, type FormEvent } from "react";
+
+type PhoneApiResponse = {
+  success?: boolean;
+  verified?: boolean;
+  phone?: string | null;
+  maskedPhone?: string | null;
+  challengeId?: string;
+  expiresIn?: number;
+  resendAfter?: number;
+  message?: string;
+  error?: string;
+};
+
+async function apiRequest(path: string, init?: RequestInit): Promise<PhoneApiResponse> {
+  const response = await fetch(path, {
+    ...init,
+    credentials: "same-origin",
+    cache: "no-store",
+    headers: {
+      Accept: "application/json",
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...init?.headers,
+    },
+  });
+
+  const payload = await response.json().catch(() => ({})) as PhoneApiResponse;
+  if (!response.ok) {
+    throw new Error(payload.error || payload.message || (response.status === 401
+      ? "Your session has expired. Sign in again."
+      : "The phone verification service could not complete the request."));
+  }
+  return payload;
+}
+
+export default function PhoneVerification() {
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [challengeId, setChallengeId] = useState("");
+  const [verified, setVerified] = useState(false);
+  const [verifiedPhone, setVerifiedPhone] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    apiRequest("/api/account/phone/status")
+      .then((payload) => {
+        if (!payload.success || typeof payload.verified !== "boolean") {
+          throw new Error(payload.message || "The phone verification service returned an invalid status response.");
+        }
+        if (!active) return;
+        setVerified(payload.verified);
+        setVerifiedPhone(payload.phone || payload.maskedPhone || "");
+      })
+      .catch((reason: unknown) => {
+        if (!active) return;
+        setError(reason instanceof Error ? reason.message : "Could not load phone status.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, []);
+
+  async function sendOtp(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+    const normalized = phone.replace(/[\s()-]/g, "");
+    if (!/^(?:\+?8801|01)[3-9]\d{8}$/.test(normalized)) {
+      setError("Enter a valid Bangladesh mobile number, such as 01XXXXXXXXX.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const payload = await apiRequest("/api/account/phone/send-otp", {
+        method: "POST",
+        body: JSON.stringify({ phone: normalized }),
+      });
+      if (payload.success !== true || !payload.challengeId || !/^[0-9a-f-]{36}$/i.test(payload.challengeId)) {
+        throw new Error(payload.message || "The SMS service did not return a valid verification challenge.");
+      }
+      setPhone(normalized);
+      setChallengeId(payload.challengeId);
+      setOtp("");
+      setMessage(payload.message || "A verification code has been sent to your phone.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not send the verification code.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function verifyOtp(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+    if (!challengeId || !/^\d{6}$/.test(otp)) {
+      setError("Enter the six-digit verification code.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const payload = await apiRequest("/api/account/phone/verify-otp", {
+        method: "POST",
+        body: JSON.stringify({ challengeId, otp }),
+      });
+      if (payload.success !== true || typeof payload.phone !== "string") {
+        throw new Error(payload.message || "The phone verification service did not confirm this number.");
+      }
+      setVerified(true);
+      setVerifiedPhone(payload.phone);
+      setChallengeId("");
+      setOtp("");
+      setMessage(payload.message || "Your phone number is verified.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not verify the code.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="panel wide">
+      <p className="eyebrow">ACCOUNT CONTACT</p>
+      <h1>Phone verification</h1>
+      <p className="muted">Verify a Bangladesh mobile number using the existing Neweix SMS service.</p>
+      {loading && <p className="notice" role="status">Loading phone verification status…</p>}
+      {!loading && verified && (
+        <div className="notice success" role="status">
+          Phone number verified{verifiedPhone ? `: ${verifiedPhone}` : "."}
+        </div>
+      )}
+      {!loading && !verified && (
+        <>
+          <form onSubmit={sendOtp}>
+            <label>
+              Bangladesh mobile number
+              <input
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="01XXXXXXXXX"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                required
+                disabled={busy || Boolean(challengeId)}
+              />
+            </label>
+            <button className="button primary full" type="submit" disabled={busy || Boolean(challengeId)}>
+              {busy ? "Please wait…" : "Send verification code"}
+            </button>
+          </form>
+          {challengeId && (
+            <form onSubmit={verifyOtp}>
+              <label>
+                Six-digit verification code
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  value={otp}
+                  onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                  required
+                  disabled={busy}
+                />
+              </label>
+              <button className="button primary full" type="submit" disabled={busy || otp.length !== 6}>
+                {busy ? "Verifying…" : "Verify phone"}
+              </button>
+              <button className="button secondary full" type="button" disabled={busy} onClick={() => { setChallengeId(""); setOtp(""); setError(""); setMessage("You can request a new code when the service cooldown allows it."); }}>
+                Cancel verification
+              </button>
+            </form>
+          )}
+        </>
+      )}
+      {error && <p className="notice error" role="alert">{error}</p>}
+      {message && <p className="notice" role="status">{message}</p>}
+      <p className="fine">Codes expire after five minutes. Resend cooldown and daily limits are enforced by the existing SMS service.</p>
+    </section>
+  );
+}

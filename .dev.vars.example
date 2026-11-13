@@ -1,0 +1,2 @@
+NEXTJS_ENV=development
+PHONE_OTP_FORWARDING_ENABLED=false
