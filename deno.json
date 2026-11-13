@@ -1,7 +1,7 @@
 {
   "nodeModulesDir": "auto",
   "tasks": {
-    "edge:test": "deno test supabase/functions/neweix-username-login/validation_test.ts lib/auth/validation_test.ts",
-    "edge:check": "deno check supabase/functions/neweix-username-login/index.ts supabase/functions/before-user-created/index.ts lib/auth/validation_test.ts"
+    "edge:test": "deno test supabase/functions/neweix-username-login/validation_test.ts supabase/functions/neweix-username-login/password_validation_test.ts",
+    "edge:check": "deno check supabase/functions/neweix-username-login/index.ts supabase/functions/before-user-created/index.ts supabase/functions/neweix-username-login/password_validation_test.ts"
   }
 }
