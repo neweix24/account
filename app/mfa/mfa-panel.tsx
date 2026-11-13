@@ -71,7 +71,7 @@ export default function MfaPanel({
       <p className="muted">
         {mode === "challenge"
           ? "Enter the current code from your authenticator app to continue."
-          : "Add an authenticator app for an additional layer of account protection."}
+          : "2FA is optional. Add an authenticator app for an extra layer of protection. If you leave it off, you can continue signing in with your password."}
       </p>
       {error && <p className="notice error" role="alert">{error}</p>}
       {mode === "challenge" ? (
@@ -115,7 +115,7 @@ export default function MfaPanel({
           )}
           {!factorId ? (
             <button className="button primary" type="button" disabled={busy} onClick={startSetup}>
-              {busy ? "Preparing…" : verified.length ? "Add another authenticator" : "Set up authenticator"}
+              {busy ? "Preparing…" : verified.length ? "Add another authenticator" : "Enable optional 2FA"}
             </button>
           ) : (
             <>

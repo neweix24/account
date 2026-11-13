@@ -64,6 +64,33 @@ export async function proxy(request: NextRequest) {
   }
 
   if (sessionIsValid !== true) return redirectToLogin(request);
+
+  // A successful password sign-in only grants AAL1. If this account has a
+  // verified TOTP factor, every protected Account route must require AAL2.
+  // Keep /mfa reachable at AAL1 so the user can complete the challenge.
+  if (
+    (request.nextUrl.pathname === "/account" || request.nextUrl.pathname.startsWith("/account/")) &&
+    claims.aal !== "aal2"
+  ) {
+    const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
+    if (factorsError) {
+      return new NextResponse(
+        "Neweix Account security verification is temporarily unavailable. Please try again.",
+        { status: 503, headers: { "Cache-Control": "no-store", "Retry-After": "5" } },
+      );
+    }
+
+    const hasVerifiedTotp = (factors?.all ?? []).some(
+      (factor) => factor.factor_type === "totp" && factor.status === "verified",
+    );
+    if (hasVerifiedTotp) {
+      const challenge = NextResponse.redirect(new URL("/mfa", request.url));
+      response.cookies.getAll().forEach((cookie) => challenge.cookies.set(cookie));
+      challenge.headers.set("Cache-Control", "no-store");
+      return challenge;
+    }
+  }
+
   return response;
 }
 

@@ -25,8 +25,12 @@ export default async function AccountSecurityPage({
     .maybeSingle();
   if (profile?.account_status !== "active") redirect("/login?error=This%20account%20is%20not%20currently%20active.");
 
-  const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  const mfaRequired = assurance?.nextLevel === "aal2";
+  const [{ data: assurance }, { data: factorData }] = await Promise.all([
+    supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
+    supabase.auth.mfa.listFactors(),
+  ]);
+  const mfaEnabled = assurance?.nextLevel === "aal2" &&
+    (factorData?.all ?? []).some((factor) => factor.factor_type === "totp" && factor.status === "verified");
 
   return (
     <main className="auth-shell">
@@ -37,6 +41,18 @@ export default async function AccountSecurityPage({
         <p className="muted">Change your password securely. Your current password is verified before the update.</p>
         {error && <p className="notice error" role="alert">{error}</p>}
         {message && <p className="notice" role="status">{message}</p>}
+        <div className="security-setting">
+          <h2>Two-factor authentication (2FA)</h2>
+          <p className="muted">
+            Status: <strong>{mfaEnabled ? "Enabled" : "Not enabled"}</strong>
+          </p>
+          <p className="fine">
+            2FA is optional. You can keep using Neweix Account without enabling it. If enabled, an authenticator code is required at sign-in.
+          </p>
+          <Link className="button secondary" href="/mfa">
+            {mfaEnabled ? "Manage 2FA" : "Set up optional 2FA"}
+          </Link>
+        </div>
         <form action={changePassword}>
           <label>
             Current password
@@ -51,11 +67,12 @@ export default async function AccountSecurityPage({
             <input name="confirmPassword" type="password" autoComplete="new-password" minLength={12} required />
           </label>
           <p className="fine">Use at least 12 characters. Avoid reusing a password from another service.</p>
-          {mfaRequired && <p className="fine">Authenticator verification is required before this change can be completed.</p>}
+          {mfaEnabled && assurance?.currentLevel !== "aal2" && (
+            <p className="fine">Because 2FA is enabled, authenticator verification is required before this change can be completed.</p>
+          )}
           <button className="button primary full" type="submit">Update password</button>
         </form>
         <p><Link href="/account/sessions">Manage signed-in devices</Link></p>
-        <p><Link href="/mfa">Authenticator settings</Link></p>
         <p className="fine"><Link href="/account">Back to account</Link></p>
       </section>
     </main>

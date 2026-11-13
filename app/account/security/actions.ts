@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isValidAccountPassword, passwordsMatch } from "@/lib/auth/validation";
 
 function backWithError(message: string): never {
   redirect(`/account/security?error=${encodeURIComponent(message)}`);
@@ -13,8 +14,8 @@ export async function changePassword(formData: FormData) {
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
   if (!currentPassword || !newPassword) backWithError("Enter your current password and a new password.");
-  if (newPassword.length < 12) backWithError("Your new password must contain at least 12 characters.");
-  if (newPassword !== confirmPassword) backWithError("The new passwords do not match.");
+  if (!isValidAccountPassword(newPassword)) backWithError("Your new password must contain 12 to 128 characters.");
+  if (!passwordsMatch(newPassword, confirmPassword)) backWithError("The new passwords do not match.");
   if (currentPassword === newPassword) backWithError("Choose a password you have not used for this account.");
 
   const supabase = await createClient();
