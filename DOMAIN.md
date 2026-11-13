@@ -31,6 +31,12 @@ This repository contains the separate Neweix Account Next.js application. The sh
 - The preview Worker uses host-only Supabase cookies on `workers.dev`.
 - Callback origins are derived from the incoming allowed `workers.dev` host for isolated preview deployments. The production callback origin is `https://www.accounts.neweix.com`.
 
+## Build verification status
+
+- Cloudflare Worker `neweix-account-preview` exists with its `workers.dev` endpoint, but the Cloudflare Builds API currently reports no build configuration, no repository connection, and no recorded builds for this Worker. Do not describe the preview as built or deployed from this repository yet.
+- GitHub Actions run 104 for PR #7 failed before any workflow steps were recorded; the job has no runner ID or downloadable logs. This is not evidence that the application build passed or failed at a source-code step.
+- No production Worker deployment, custom-domain cutover, or DNS change is authorized by this preview work.
+
 ## Production readiness
 
 A successful GitHub build or preview deployment does not prove that production Auth redirect allowlists, password recovery, SMS delivery, or authenticated browser flows work. Before any production cutover, verify signup confirmation, username/email login, MFA, password recovery, session revocation, phone status, and the controlled OTP send/verify path using a test account. Do not enable OTP mutations until the provider flow has been acceptance-tested.
