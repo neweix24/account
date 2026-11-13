@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getAuthCookieOptions } from "@/lib/supabase/cookie-options";
 
 function isProtectedPath(pathname: string) {
   return pathname === "/account" || pathname.startsWith("/account/") ||
@@ -23,6 +24,7 @@ export async function proxy(request: NextRequest) {
   if (!url || !key) return response;
 
   const supabase = createServerClient(url, key, {
+    cookieOptions: getAuthCookieOptions(),
     cookies: {
       getAll() {
         return request.cookies.getAll();
