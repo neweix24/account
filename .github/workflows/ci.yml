@@ -50,3 +50,6 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+      - name: Package Cloudflare Worker preview
+        run: npx opennextjs-cloudflare build
