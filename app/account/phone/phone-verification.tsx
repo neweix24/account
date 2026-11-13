@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 type ApiPayload = {
   error?: string;
@@ -21,6 +21,8 @@ type ApiPayload = {
   isVerified?: boolean;
   is_verified?: boolean;
   status?: string;
+  success?: boolean;
+  phone_verified?: boolean;
 };
 
 async function apiRequest(path: string, init?: RequestInit): Promise<ApiPayload> {
@@ -52,7 +54,7 @@ function getChallengeId(payload: ApiPayload) {
 function isVerified(payload: ApiPayload) {
   return payload.verified === true || payload.isVerified === true ||
     payload.is_verified === true || payload.data?.verified === true ||
-    payload.data?.isVerified === true || payload.data?.is_verified === true ||
+    payload.data?.isVerified === true || payload.data?.is_verified === true || payload.phone_verified === true || payload.data?.phone_verified === true ||
     payload.status === "verified" || payload.data?.status === "verified";
 }
 
@@ -85,7 +87,7 @@ export default function PhoneVerification() {
     return () => { active = false; };
   }, []);
 
-  async function sendOtp(event: React.FormEvent<HTMLFormElement>) {
+  async function sendOtp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setMessage("");
@@ -128,7 +130,7 @@ export default function PhoneVerification() {
         method: "POST",
         body: JSON.stringify({ challengeId, otp }),
       });
-      if (!isVerified(payload) && payload.status !== "success" && payload.data?.status !== "success") {
+      if (!isVerified(payload) && payload.success !== true && payload.status !== "success" && payload.data?.status !== "success") {
         throw new Error(payload.message || "The code was not confirmed as verified. Check your account status before retrying.");
       }
       setVerified(true);
