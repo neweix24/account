@@ -45,7 +45,7 @@ Account integration must call these existing routes using the authenticated sess
 
 ### Account UI integration and session handling
 
-The existing Cloudflare Worker `neweix` has the custom domain `accounts.neweix.com`, and its deployed application already implements these phone-verification routes:
+The existing Cloudflare Worker `neweix` has the custom domain `accounts.neweix.com`, and its deployed OpenNext/Next.js application already implements these phone-verification routes:
 
 - `/api/account/phone/status`
 - `/api/account/phone/send-otp`
