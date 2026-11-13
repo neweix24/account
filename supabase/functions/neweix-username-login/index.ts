@@ -112,7 +112,7 @@ Deno.serve(async (request: Request) => {
       return json(429, { error: "Too many sign-in attempts. Try again in 15 minutes." });
     }
 
-    const isEmail = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(identifier);
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
     const findAccount = async (table: "account" | "neweix_accounts") => {
       const query = admin.from(table).select("user_id,email,account_status");
       return isEmail
