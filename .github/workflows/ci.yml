@@ -2,7 +2,7 @@ name: Account CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'feat/**']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -44,6 +44,12 @@ jobs:
 
       - name: Check Supabase Edge Function
         run: deno check supabase/functions/neweix-username-login/index.ts
+
+      - name: Check deployed Auth hook Edge Function
+        run: deno check supabase/functions/before-user-created/index.ts
+
+      - name: Test username/email identifier classification
+        run: deno test supabase/functions/neweix-username-login/validation_test.ts
 
       - name: Lint
         run: npm run lint
