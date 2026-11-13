@@ -20,6 +20,13 @@ One person has one canonical Neweix identity. That identity is authenticated cen
 - Account suspension/closure is an administrative workflow; service access must check account status.
 - Existing Auth users are provisioned without changing their UUIDs or credentials.
 
+## Username lifecycle
+
+- Usernames are unique and limited to 3–20 lowercase English letters, digits, and underscores.
+- A user may change their username once per 30-day period through the authenticated Account RPC.
+- A username that is relinquished remains reserved for its former owner for 90 days. The private reservation registry is not exposed through the Data API and survives Auth-user deletion until reservation expiry.
+- Direct authenticated-role updates to `public.account.username` and `username_changed_at` are revoked so clients cannot bypass the cooldown or reservation rules.
+
 ## Sign-in identifiers
 
 Supabase password sign-in accepts email or phone identifiers. Username sign-in uses a server-side resolver that maps a normalized username to the corresponding Auth login identifier without returning the identifier to an unauthenticated caller. The resolver is rate-limited and avoids account enumeration.
