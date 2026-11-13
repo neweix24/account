@@ -11,7 +11,7 @@ function value(formData: FormData, key: string) {
 
 async function getSiteOrigin(): Promise<string | null> {
   const requestHeaders = await headers();
-  const host = (requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "")
+  const host = (requestHeaders.get("host") ?? "")
     .split(",")[0]
     .trim()
     .toLowerCase();
