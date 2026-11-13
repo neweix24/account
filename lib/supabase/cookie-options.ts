@@ -1,11 +1,9 @@
-import type { CookieOptions } from "@supabase/ssr";
-
 /**
  * Keep the Account application's Supabase auth cookie scope identical to the
  * existing Neweix Worker so sibling Neweix subdomains can use the same session.
  * Local development stays host-only and does not set Secure on localhost.
  */
-export function getAuthCookieOptions(): CookieOptions {
+export function getAuthCookieOptions() {
   const production = process.env.NODE_ENV === "production";
 
   return {
