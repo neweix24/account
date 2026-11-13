@@ -8,7 +8,7 @@ export function getAuthCookieOptions() {
 
   return {
     path: "/",
-    sameSite: "lax",
+    sameSite: "lax" as const,
     secure: production,
     ...(production
       ? {
