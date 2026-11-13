@@ -43,11 +43,19 @@ These routes require the user's authenticated Neweix session. The send route acc
 
 Account integration must call these existing routes using the authenticated session. Do not implement another OTP generator, challenge table, SMS hook, or direct BulkSMSBD request in the Account repository.
 
-### Cross-origin session requirement
+### Account UI integration and session handling
 
-Before wiring the Account UI to these endpoints, confirm the production Account origin and Neweix Worker origin share a supported authentication-cookie/session strategy. The Worker checks the signed-in user's session; an unauthenticated server-side request or a browser request that omits the required credentials must not be treated as authenticated.
+The deployed Worker `neweix` has the Cloudflare custom domain `accounts.neweix.com`, which is also the Account service's configured primary hostname. The Account phone-verification UI calls the existing API with relative same-origin paths:
 
-Do not forward service-role credentials or BulkSMSBD secrets to the browser. Do not weaken the Worker authentication checks or expose an unauthenticated OTP endpoint to work around cross-origin cookies.
+- `/api/account/phone/status`
+- `/api/account/phone/send-otp`
+- `/api/account/phone/verify-otp`
+
+Browser requests use `credentials: "same-origin"` and `cache: "no-store"`, so the browser sends the normal Account-host cookies to the Worker without a cross-origin cookie bridge. This is valid only when the Account UI is deployed at `https://accounts.neweix.com`. Do not deploy this UI on another hostname without separately designing and reviewing a secure session strategy.
+
+The Account page independently validates the Supabase user, live session, and active account before rendering. The Worker remains responsible for authenticating every API request and validating its own session. UI checks are not a substitute for Worker authorization.
+
+Do not forward service-role credentials or BulkSMSBD secrets to the browser. Do not weaken the Worker authentication checks or expose an unauthenticated OTP endpoint to work around cookie issues.
 
 ## Acceptance tests
 
