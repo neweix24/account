@@ -11,6 +11,13 @@ The canonical `www.accounts.neweix.com` hostname is attached to the dedicated `n
 
 The legacy `accounts.neweix.com` hostname remains attached to the shared `neweix` Worker, but browser requests are redirected to `www.accounts.neweix.com`. Do not detach the legacy binding or change DNS without a separately verified cutover plan.
 
+## Username policy
+
+- Usernames are unique, 3–20 characters, and contain only lowercase English letters, digits, and underscores.
+- A user may change their username once every 30 days.
+- Every relinquished username remains reserved for its former owner for 90 days. Reservation records are private and survive deletion of the former Auth user until expiry.
+- Username changes must use the authenticated Account RPC; direct client updates to `username` and `username_changed_at` are revoked.
+
 ## Service boundaries
 
 This repository contains the separate Neweix Account Next.js application. The shared `neweix` Worker remains the owner of existing production services and authenticated phone-verification API operations. Account calls those fixed phone API routes through the `NEWEIX_BACKEND` Cloudflare service binding. The browser never receives BulkSMSBD or Supabase service-role credentials.
