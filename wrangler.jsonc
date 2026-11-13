@@ -17,8 +17,7 @@
     },
     {
       "binding": "NEWEIX_BACKEND",
-      "service": "neweix",
-      "environment": "production"
+      "service": "neweix-production"
     }
   ],
   "vars": {
