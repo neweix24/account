@@ -16,7 +16,7 @@ This repository is a separate Next.js Account application. It is **not** current
 ## Safe deployment plan
 
 1. Build and preview this repository as a separate Worker named `neweix-account-preview` on its `workers.dev` hostname. The Wrangler config intentionally does not claim any production custom domain or DNS route.
-2. Use a Cloudflare service binding named `NEWEIX_BACKEND` to call the existing `neweix-production` Worker for the three phone-verification API routes. Forward the signed-in user's session cookie server-to-server; do not expose provider or service-role secrets to the browser.
+2. Use a Cloudflare service binding named `NEWEIX_BACKEND` to call the existing `neweix` Worker for the three phone-verification API routes. Forward the signed-in user's session cookie server-to-server; do not expose provider or service-role secrets to the browser.
 3. Keep phone OTP send/verify forwarding disabled on preview by default. The status route can be checked without sending SMS. Enable OTP mutations only in an explicitly configured production environment after acceptance tests.
 4. Validate sign-in, session refresh, status lookup, OTP send/verify, and logout on the preview hostname.
 5. Only after validation, plan a controlled hostname cutover for `accounts.neweix.com`. The existing Worker currently owns that hostname, so do not add a competing custom domain, detach the current domain, or change DNS as part of preview work.
