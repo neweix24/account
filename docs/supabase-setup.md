@@ -2,17 +2,20 @@
 
 Target project: the existing **Neweix** Supabase project. Do not create a separate database and do not apply Account migrations to Eixon.
 
-
 ## Messaging providers
 
-See [Messaging Providers](./messaging-providers.md) for the Resend SMTP configuration, BulkSMSBD Send SMS Auth Hook, required server-side secrets, deployment steps, and acceptance tests. Do not enable phone authentication until the SMS hook is configured and tested.
+See [Messaging Providers](./messaging-providers.md).
+
+Important: Resend DNS and the BulkSMSBD integration are already configured in Cloudflare. Reuse the existing provider setup. Do not create duplicate DNS records, API keys, Supabase SMS hooks, or SMS Edge Functions.
+
+The deployed Cloudflare Worker `neweix` already exposes authenticated phone-verification endpoints. Account UI integration is a separate step and must preserve the existing authenticated-session requirement. Confirm the cross-origin session strategy before connecting the Account origin to the Worker origin.
 
 ## Required Auth settings before production
 
 1. In Authentication → Providers, keep Email enabled. Disable Google, Facebook, and every other social provider only after existing users who rely on those identities have set an email password or have been explicitly confirmed as disposable. This is an explicit product requirement; do not lock existing customers out during migration.
 2. Enable email confirmations. Confirm the email/password provider is enabled.
 3. Set a minimum password length of at least 12 characters and enable leaked-password protection.
-4. Configure a production SMTP sender and test signup confirmation, password recovery, resend confirmation, and delivery/bounce handling.
+4. Reuse the existing Resend SMTP configuration. Do not create a new Resend domain or API key. Test signup confirmation, password recovery, resend confirmation, and delivery/bounce handling.
 5. In Authentication → URL Configuration, set the production Site URL to the final Neweix Account origin and add only exact allowed callback URLs:
    - `<SITE_ORIGIN>/auth/confirm`
    - `<SITE_ORIGIN>/auth/update-password`
