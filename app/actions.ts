@@ -123,3 +123,26 @@ export async function requestPasswordReset(formData: FormData) {
   redirect("/reset-password?message=If%20the%20account%20exists,%20a%20recovery%20email%20will%20be%20sent.");
 }
 
+export async function changeUsername(formData: FormData) {
+  const username = value(formData, "username").toLowerCase();
+  if (!/^[a-z0-9_]{3,20}$/.test(username)) {
+    redirect("/account?username_error=invalid_username");
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("neweix_change_account_username", {
+    p_username: username,
+  });
+
+  if (error) redirect("/account?username_error=temporarily_unavailable");
+  if (!data?.success) {
+    const code = typeof data?.code === "string" ? data.code : "temporarily_unavailable";
+    const allowed = new Set([
+      "session_required", "invalid_username", "account_unavailable", "same_username",
+      "cooldown", "username_taken", "username_reserved", "reservation_conflict",
+    ]);
+    redirect(`/account?username_error=${allowed.has(code) ? code : "temporarily_unavailable"}`);
+  }
+
+  redirect("/account?username_message=updated");
+}
