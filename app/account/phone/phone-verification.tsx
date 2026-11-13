@@ -15,6 +15,7 @@ type ApiPayload = {
     isVerified?: boolean;
     is_verified?: boolean;
     status?: string;
+    phone_verified?: boolean;
   };
   phone?: string;
   verified?: boolean;
@@ -115,7 +116,7 @@ export default function PhoneVerification() {
     }
   }
 
-  async function verifyOtp(event: React.FormEvent<HTMLFormElement>) {
+  async function verifyOtp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setMessage("");
