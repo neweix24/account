@@ -2,11 +2,12 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isValidAccountPassword, passwordsMatch } from "@/lib/auth/validation";
 
 export async function updatePassword(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
-  if (password.length < 12 || password.length > 128 || password !== confirmPassword) {
+  if (!isValidAccountPassword(password) || !passwordsMatch(password, confirmPassword)) {
     redirect("/update-password?error=Passwords%20must%20match%20and%20contain%2012%20to%20128%20characters.");
   }
 
