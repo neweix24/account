@@ -18,7 +18,7 @@ async function getSiteOrigin(): Promise<string | null> {
 
   if (host === "www.accounts.neweix.com") return "https://www.accounts.neweix.com";
   if (host === "localhost:3000") return "http://localhost:3000";
-  if (/^[a-z0-9.-]+\\.workers\\.dev$/.test(host)) return `https://${host}`;
+  if (/^[a-z0-9.-]+\.workers\.dev$/.test(host)) return `https://${host}`;
 
   return process.env.NEXT_PUBLIC_SITE_URL ?? null;
 }
