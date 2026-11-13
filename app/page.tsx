@@ -7,17 +7,13 @@ export default async function HomePage() {
 
   return (
     <main className="shell">
-      <header className="topbar"><span className="brand">Neweix Account</span><span className="muted">One identity. Every Neweix service.</span></header>
+      <header className="topbar"><span className="brand">Neweix</span></header>
       <section className="hero">
-        <p className="eyebrow">YOUR CENTRAL ACCOUNT</p>
-        <h1>One account for your Neweix world.</h1>
-        <p className="lead">Create and secure your Neweix identity, then use it to access approved Neweix services.</p>
+        <h1>Neweix Account</h1>
         <div className="actions">
-          {user ? <Link className="button primary" href="/account">Open your account</Link> : <><Link className="button primary" href="/signup">Create Neweix Account</Link><Link className="button secondary" href="/login">Sign in</Link></>}
+          {user ? <Link className="button primary" href="/account">Open account</Link> : <><Link className="button primary" href="/signup">Create account</Link><Link className="button secondary" href="/login">Sign in</Link></>}
         </div>
-        <p className="fine">Independent Neweix sign-in. No Google or Facebook login.</p>
       </section>
-      <footer>Neweix Account · Central identity and access</footer>
     </main>
   );
 }
