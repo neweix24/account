@@ -33,12 +33,6 @@
       "NEXT_PUBLIC_SUPABASE_URL": "https://preview-disabled.invalid",
       "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "preview-disabled",
       "NEXT_PUBLIC_SITE_URL": "https://www.accounts.neweix.com"
-    },
-    "services": [
-      {
-        "binding": "NEWEIX_BACKEND",
-        "service": "neweix"
-      }
-    ]
+    }
   }
 }
