@@ -37,6 +37,15 @@ This repository contains the separate Neweix Account Next.js application. The sh
 - GitHub Actions run 104 for PR #7 failed before any workflow steps were recorded; the job has no runner ID or downloadable logs. This is not evidence that the application build passed or failed at a source-code step.
 - No production Worker deployment, custom-domain cutover, or DNS change is authorized by this preview work.
 
+
+## Live Cloudflare state verified 2026-11-13
+- Account `neweix-account-preview` is currently deployed in Cloudflare production environment. Its latest active deployment is 100% traffic on version `cd9dbc3d-a99d-4ee9-9942-b76649c4c770` (deployment `85127731-f495-4019-b4d3-3d81dca44c38`).
+- Both `accounts.neweix.com` and `www.accounts.neweix.com` are attached as enabled production Worker domains to `neweix-account-preview`.
+- The deployed Worker currently has the production Supabase URL and publishable (anon) key, plus the `NEWEIX_BACKEND` service binding to the shared `neweix` Worker.
+- `PHONE_OTP_FORWARDING_ENABLED=false`; phone OTP send/verify mutations remain disabled.
+- This confirms the Account Worker is already live on the production hostname and connected to production Supabase. It does **not** constitute authenticated end-to-end acceptance testing or production security sign-off. Do not detach domains, replace the Worker, or enable OTP until the release gates below are completed.
+- Cloudflare account is on the Free Website plan. No paid Cloudflare feature or upgrade was used for this deployment.
+
 ## Production readiness
 
 A successful GitHub build or preview deployment does not prove that production Auth redirect allowlists, password recovery, SMS delivery, or authenticated browser flows work. Before any production cutover, verify signup confirmation, username/email login, MFA, password recovery, session revocation, phone status, and the controlled OTP send/verify path using a test account. Do not enable OTP mutations until the provider flow has been acceptance-tested.
