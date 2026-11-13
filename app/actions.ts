@@ -4,6 +4,7 @@ import { createHmac } from "node:crypto";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isValidAccountPassword, passwordsMatch } from "@/lib/auth/validation";
 
 function value(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
@@ -16,7 +17,7 @@ async function getSiteOrigin(): Promise<string | null> {
     .trim()
     .toLowerCase();
 
-  if (host === "www.accounts.neweix.com") return "https://www.accounts.neweix.com";
+  if (host === "www.accounts.neweix.com" || host === "accounts.neweix.com") return "https://www.accounts.neweix.com";
   if (host === "localhost:3000") return "http://localhost:3000";
   if (/^[a-z0-9.-]+\.workers\.dev$/.test(host)) return `https://${host}`;
 
@@ -30,8 +31,9 @@ export async function signUp(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
-  if (!fullName || !/^[a-z0-9_]{3,20}$/.test(username) || !email || password.length < 12 || password !== confirmPassword) {
-    redirect("/signup?error=Check%20your%20details.%20Username%20must%20be%203%E2%80%9320%20characters%20and%20passwords%20must%20match.");
+  if (!fullName || !/^[a-z0-9_]{3,20}$/.test(username) || !email ||
+      !isValidAccountPassword(password) || !passwordsMatch(password, confirmPassword)) {
+    redirect("/signup?error=Check%20your%20details.%20Username%20must%20be%203%E2%80%9320%20characters%20and%20passwords%20must%20match.%20Passwords%20must%20be%2012%E2%80%93128%20characters.");
   }
 
   const siteUrl = await getSiteOrigin();
@@ -90,7 +92,10 @@ export async function signIn(formData: FormData) {
 
   const result = await response.json().catch(() => ({}));
   if (!response.ok || !result.access_token || !result.refresh_token) {
-    redirect(`/login?error=${encodeURIComponent(result.error ?? "Sign-in failed. Check your credentials and verification.")}`);
+    const message = response.status === 429
+      ? "Too many sign-in attempts. Try again in 15 minutes."
+      : "Sign-in failed. Check your credentials and verification.";
+    redirect(`/login?error=${encodeURIComponent(message)}`);
   }
 
   const { error } = await supabase.auth.setSession({
