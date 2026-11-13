@@ -24,7 +24,8 @@ One person has one canonical Neweix identity. That identity is authenticated cen
 
 - Usernames are unique and limited to 3–20 lowercase English letters, digits, and underscores.
 - A user may change their username once per 30-day period through the authenticated Account RPC.
-- A username that is relinquished remains reserved for its former owner for 90 days. The private reservation registry is not exposed through the Data API and survives Auth-user deletion until reservation expiry.
+- A username that is relinquished remains reserved for its former owner for 90 days. The former owner may reclaim it during that period, subject to the 30-day cooldown; other users and new signups are blocked by database enforcement.
+- The private reservation registry is not exposed through the Data API and survives Auth-user deletion until reservation expiry. A database trigger enforces the reservation rule for signup provisioning and every username insert/update.
 - Direct authenticated-role updates to `public.account.username` and `username_changed_at` are revoked so clients cannot bypass the cooldown or reservation rules.
 
 ## Sign-in identifiers
