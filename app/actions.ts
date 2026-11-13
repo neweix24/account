@@ -123,38 +123,3 @@ export async function requestPasswordReset(formData: FormData) {
   redirect("/reset-password?message=If%20the%20account%20exists,%20a%20recovery%20email%20will%20be%20sent.");
 }
 
-
-export async function updateRecoveredPassword(formData: FormData) {
-  const password = String(formData.get("password") ?? "");
-  const confirmPassword = String(formData.get("confirmPassword") ?? "");
-
-  if (password.length < 12 || password.length > 128) {
-    redirect("/update-password?error=Use%20a%20password%20between%2012%20and%20128%20characters.");
-  }
-  if (password !== confirmPassword) {
-    redirect("/update-password?error=The%20passwords%20do%20not%20match.");
-  }
-
-  const supabase = await createClient();
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) {
-    redirect("/reset-password?error=This%20recovery%20link%20is%20invalid%20or%20has%20expired.");
-  }
-
-  const { error: updateError } = await supabase.auth.updateUser({ password });
-  if (updateError) {
-    redirect("/update-password?error=Unable%20to%20update%20your%20password.%20Check%20the%20password%20requirements%20and%20try%20again.");
-  }
-
-  const { data: auditSaved, error: auditError } = await supabase.rpc("neweix_record_password_changed_event");
-  const { error: signOutError } = await supabase.auth.signOut({ scope: "global" });
-
-  if (auditError || auditSaved !== true) {
-    redirect("/login?error=Password%20updated.%20Please%20contact%20support%20if%20you%20need%20help%20with%20your%20security%20record.");
-  }
-  if (signOutError) {
-    redirect("/login?message=Password%20updated.%20Sign%20in%20again%20to%20finish%20securing%20your%20account.");
-  }
-
-  redirect("/login?message=Password%20updated.%20All%20devices%20have%20been%20signed%20out.%20Sign%20in%20again.");
-}
