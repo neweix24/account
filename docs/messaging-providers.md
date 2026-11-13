@@ -45,7 +45,7 @@ Account integration must call these existing routes using the authenticated sess
 
 ### Account UI integration and session handling
 
-The existing Cloudflare Worker `neweix` has the custom domain `accounts.neweix.com`, and its deployed OpenNext/Next.js application already implements these phone-verification routes:
+The existing Cloudflare Worker `neweix` has the custom domain `accounts.neweix.com`. Its deployed OpenNext/Next.js application already implements these phone-verification routes:
 
 - `/api/account/phone/status`
 - `/api/account/phone/send-otp`
@@ -59,13 +59,17 @@ The deployed API response contract is:
 
 Errors are JSON objects with an `error` field and an appropriate non-2xx HTTP status. Every route authenticates the current user from the Supabase session cookie. The send route reserves the OTP challenge atomically, enforces cooldown/daily limits, and sends through the existing BulkSMSBD binding. The verify route checks the challenge against the authenticated user and consumes it through the existing database RPC.
 
-The Account UI uses relative same-origin paths and `credentials: "same-origin"`. This is correct only after the Account Next.js application is actually served on `https://accounts.neweix.com` by the same Worker or a reviewed routing architecture. Cloudflare currently attaches that hostname to the existing `neweix` Worker; this repository has no Worker deployment configuration yet. A hostname binding alone does not deploy this repository.
+This repository now includes a Cloudflare service-binding proxy for those three fixed API paths. The Account browser makes same-origin requests to its own `/api/account/phone/*` route handlers. The route handlers forward the signed-in user's cookie server-to-server through the `NEWEIX_BACKEND` service binding to the existing `neweix` Worker. Provider secrets and the Supabase service-role key remain inside the existing Worker and are never sent to the browser.
 
-Do not deploy a second Worker to the same hostname without first migrating or securely proxying the existing phone API routes. Do not detach the current custom domain as an experiment. The Account SSR and proxy clients now set the same production Supabase cookie scope as the existing Worker: domain `.neweix.com`, path `/`, SameSite=Lax, Secure, and one-year max age.
+The separate preview Worker is named `neweix-account-preview` and has no custom domain or DNS route. Its Wrangler configuration targets the existing `neweix` Worker in the production environment using a service binding. The status route can be exercised on preview, but send and verify requests return HTTP 503 unless `PHONE_OTP_FORWARDING_ENABLED=true` is explicitly configured. This prevents accidental production SMS delivery during preview testing.
 
-The Account page independently validates the Supabase user, live session, and active account before rendering. The Worker remains responsible for authenticating every API request; UI checks are not a substitute for Worker authorization.
+The preview Account app uses a host-only Supabase cookie on its `workers.dev` hostname. The backend proxy preserves that cookie for the internal Worker request and rewrites any refreshed cookie's Domain attribute to match the Account environment. For the eventual `accounts.neweix.com` deployment, set `AUTH_COOKIE_DOMAIN=.neweix.com` so the browser receives the intended shared Neweix session cookie.
 
-Do not forward service-role credentials or BulkSMSBD secrets to the browser. Do not weaken the Worker authentication checks or expose an unauthenticated OTP endpoint to work around cookie issues.
+Cloudflare currently attaches `accounts.neweix.com` to the existing `neweix` Worker, which also serves other Neweix subdomains. This repository is not proven to be the source tree currently deployed to that Worker. Do not move the hostname or detach the existing custom domain until the preview has passed acceptance tests and a controlled cutover plan is approved.
+
+The Account page independently validates the Supabase user, live session, and active account before rendering. The existing Worker remains responsible for authenticating every API request; UI checks are not a substitute for Worker authorization.
+
+Do not forward service-role credentials or BulkSMSBD secrets to the browser. Do not weaken the Worker authentication checks or expose an unauthenticated OTP endpoint to work around session issues.
 
 ## Acceptance tests
 
