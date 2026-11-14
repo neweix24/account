@@ -59,3 +59,6 @@ jobs:
 
       - name: Package Cloudflare Worker preview
         run: npx opennextjs-cloudflare build
+
+      - name: Validate production Worker configuration without deploying
+        run: npx wrangler deploy --dry-run --config wrangler.production.jsonc
