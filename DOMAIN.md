@@ -22,12 +22,12 @@ The live `neweix-account` Worker currently has:
 - Production Supabase project URL and a publishable/legacy anon key.
 - `PHONE_OTP_FORWARDING_ENABLED=false`.
 
-Two configuration gaps remain:
+Two configuration and acceptance items remain:
 
 1. The live `NEXT_PUBLIC_SITE_URL` value is `https://accounts.neweix.com`, while the canonical URL is `https://www.accounts.neweix.com`. The repository's `wrangler.production.jsonc` contains the canonical value, but that config has not been deployed.
-2. The live Account Worker does not currently expose a `LOGIN_RATE_LIMIT_HMAC_SECRET` secret binding. The login action and `neweix-username-login` Edge Function use this shared secret to prove the client IP before applying IP-based throttling. Without it, the Edge Function falls back to identifier-based throttling. Configure the same high-entropy secret in both runtimes before treating IP-based throttling as active. Never put this value in a checked-in file or a plain-text `vars` entry.
+2. Cloudflare now confirms that the `neweix-account` Worker has a `LOGIN_RATE_LIMIT_HMAC_SECRET` secret binding. The project owner reports setting the same secret for the `neweix-username-login` Supabase Edge Function. The Supabase connector cannot inspect secret values, so it cannot independently verify presence or equality. Edge Function version 12 reads this secret and verifies the client-IP HMAC proof. A controlled runtime test is still required before IP-based throttling can be marked fully verified. Never put this value in a checked-in file or a plain-text `vars` entry.
 
-The Supabase connector does not expose Edge Function secret values, so the presence of the matching secret in Supabase cannot be confirmed from this audit.
+The project owner reports that Supabase leaked-password protection is unavailable on the current Free plan. The Security Advisor still reports it disabled; this remains a documented plan limitation and release risk, not an enabled control.
 
 ## Service boundaries
 

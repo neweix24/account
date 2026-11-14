@@ -16,12 +16,15 @@ This document records the production checks required before a release is conside
 | Backend binding | `NEWEIX_BACKEND` -> `neweix` / `production` | Verified |
 | Supabase | Project `grhybvlhdnzlopwbaqun`, status `ACTIVE_HEALTHY` | Verified |
 | Account migrations | Account identity, session, username, and reservation migrations appear in applied migration history through `20261113141413` | Verified |
-| Username login function | `neweix-username-login`, active version 11 | Verified |
+| Username login function | `neweix-username-login`, active version 12 | Verified |
 | Signup hook | `before-user-created`, active version 15 | Verified |
 | Phone OTP mutations | `PHONE_OTP_FORWARDING_ENABLED=false` | Correctly disabled |
 | Canonical site URL variable | Live Worker has `https://accounts.neweix.com`; production config file specifies `https://www.accounts.neweix.com` | Config not deployed |
-| Login IP-proof secret | No `LOGIN_RATE_LIMIT_HMAC_SECRET` binding on the live Account Worker | Missing |
-| Supabase leaked-password protection | Supabase Security Advisor reports it disabled | Needs enablement or explicit risk acceptance |
+| Cloudflare login IP-proof secret | `LOGIN_RATE_LIMIT_HMAC_SECRET` exists as a secret binding on `neweix-account` (value not exposed) | Verified |
+| Supabase login IP-proof secret | Project owner reports the same secret was added to `neweix-username-login`; connector cannot inspect secret presence or compare values | Owner-confirmed; independently unverified |
+| IP-based login throttling | Edge Function version 12 reads `LOGIN_RATE_LIMIT_HMAC_SECRET` and verifies the client IP HMAC proof | Configuration present; runtime test pending |
+| Recent username-login function traffic | No requests to `/functions/v1/neweix-username-login` appeared in the available Supabase edge log window | No live login test evidence; disposable test-account run required |
+| Supabase leaked-password protection | Reported unavailable on the project's current Free plan; Security Advisor reports it disabled | Plan limitation; do not block repeatedly on an unavailable toggle; risk remains documented |
 | Account RPC security review | Five Account `SECURITY DEFINER` RPCs inspected; all require the caller's user/session identity. `anon` cannot execute them. | Code/grants reviewed; runtime tests pending |
 | Private schema access | `anon` and `authenticated` lack `USAGE` on `private`; `service_role` has access | Verified |
 | Authenticated browser flows | No controlled end-to-end acceptance evidence recorded | Pending |
@@ -40,16 +43,15 @@ This document records the production checks required before a release is conside
 
 The Account Next.js login action signs the client IP with `LOGIN_RATE_LIMIT_HMAC_SECRET`; the `neweix-username-login` Edge Function verifies that proof before applying the IP bucket.
 
-- Create one high-entropy secret value.
-- Set the exact same value as a Cloudflare Worker secret on `neweix-account` and as a Supabase Edge Function secret for `neweix-username-login`.
-- Do not add it to `wrangler.production.jsonc`, `vars`, GitHub source, or logs.
-- Verify both sides use the same value without printing it.
-- Confirm that a controlled test produces identifier-level and IP-level rate limiting.
-- Until this is done, the Edge Function falls back to identifier-based throttling; do not describe IP-based throttling as active.
+- The project owner reports that one high-entropy value has been set in both runtimes. Cloudflare confirms the Worker secret name exists; the Supabase connector cannot inspect Edge Function secret values, so equality cannot be independently verified.
+- The Edge Function version 12 reads `LOGIN_RATE_LIMIT_HMAC_SECRET` and validates the HMAC proof before selecting the IP rate-limit bucket.
+- Do not add the value to `wrangler.production.jsonc`, `vars`, GitHub source, or logs.
+- Supabase edge logs were inspected; no requests to `/functions/v1/neweix-username-login` were present in the available log window. This means there is no existing request evidence to validate the proof path.
+- A controlled login test must still confirm that both identifier-level and IP-level rate limiting work. Until that test passes, treat IP throttling as configured but not runtime-verified.
 
-### 3. Enable Supabase Auth password protection
+### 3. Supabase Auth leaked-password protection plan limitation
 
-The Supabase Security Advisor currently reports leaked-password protection as disabled. Enable it in the project's Auth password security settings, then verify that signup and password changes still follow the Account password policy.
+The project owner reports that leaked-password protection is not available on the project's current Supabase Free plan. The Security Advisor continues to report it as disabled. Do not repeatedly request enabling this unavailable setting. Keep the limitation visible in release risk tracking; reconsider if the project plan changes or an equivalent control becomes available. This is not silently treated as enabled.
 
 ### 4. Security Advisor review
 
@@ -78,7 +80,7 @@ Use disposable test accounts only. Do not use real customer accounts or perform 
 - [ ] Confirm no session is granted before the required email verification.
 
 ### B. Username and email sign-in
-- [ ] Sign in using the test account's username.
+- [ ] Sign in using the test account's username. (No disposable test-account credentials were available during this audit, so this has not been executed.)
 - [ ] Sign out, then sign in using its email address.
 - [ ] Confirm invalid credentials return a generic error.
 - [ ] Confirm rate limiting works at the identifier level and, after secret provisioning, at the IP level.
@@ -108,9 +110,9 @@ Use disposable test accounts only. Do not use real customer accounts or perform 
 ## Deployment gate
 
 Production deployment is blocked until:
-- [ ] The shared HMAC secret is configured in both runtimes and IP throttling is verified.
+- [ ] The owner-reported shared HMAC secret is present in both runtimes and IP throttling passes a controlled runtime test.
 - [ ] Supabase Auth canonical callback configuration is confirmed.
-- [ ] Leaked-password protection is enabled or the risk is explicitly accepted by the project owner.
+- [ ] The leaked-password protection Free Plan limitation is explicitly accepted as a release risk by the project owner, or an equivalent control is adopted.
 - [ ] The controlled test plan above passes.
 - [ ] The canonical and non-canonical hostname behavior is verified.
 - [ ] A production deployment is explicitly authorized.
