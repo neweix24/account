@@ -21,7 +21,9 @@ This document records the production checks required before a release is conside
 | Phone OTP mutations | `PHONE_OTP_FORWARDING_ENABLED=false` | Correctly disabled |
 | Canonical site URL variable | Live Worker has `https://accounts.neweix.com`; production config file specifies `https://www.accounts.neweix.com` | Config not deployed |
 | Login IP-proof secret | No `LOGIN_RATE_LIMIT_HMAC_SECRET` binding on the live Account Worker | Missing |
-| Supabase leaked-password protection | Supabase Security Advisor reports it disabled | Needs review/enablement |
+| Supabase leaked-password protection | Supabase Security Advisor reports it disabled | Needs enablement or explicit risk acceptance |
+| Account RPC security review | Five Account `SECURITY DEFINER` RPCs inspected; all require the caller's user/session identity. `anon` cannot execute them. | Code/grants reviewed; runtime tests pending |
+| Private schema access | `anon` and `authenticated` lack `USAGE` on `private`; `service_role` has access | Verified |
 | Authenticated browser flows | No controlled end-to-end acceptance evidence recorded | Pending |
 
 ## Release blockers and required actions
@@ -45,21 +47,24 @@ The Account Next.js login action signs the client IP with `LOGIN_RATE_LIMIT_HMAC
 - Confirm that a controlled test produces identifier-level and IP-level rate limiting.
 - Until this is done, the Edge Function falls back to identifier-based throttling; do not describe IP-based throttling as active.
 
-### 3. Review Supabase Auth password protection
+### 3. Enable Supabase Auth password protection
 
 The Supabase Security Advisor currently reports leaked-password protection as disabled. Enable it in the project's Auth password security settings, then verify that signup and password changes still follow the Account password policy.
 
-### 4. Review Security Advisor findings
+### 4. Security Advisor review
 
 The latest Security Advisor response included:
 - A warning that leaked-password protection is disabled.
 - Warnings for six `SECURITY DEFINER` functions callable by authenticated users, including Account username/session RPCs.
 - Informational RLS-without-policy findings, including private-schema tables intended to be server-only.
 
-Before sign-off:
-- Review the function bodies and grants for each Account RPC to confirm every function enforces the intended `auth.uid()` and ownership checks.
-- Confirm private schemas are not exposed through the Data API and that server-only tables remain inaccessible to `anon` and `authenticated`.
-- Do not add broad RLS policies merely to silence the linter; the private tables are intentionally server-only.
+A read-only database review was performed:
+- `neweix_change_account_username`, `neweix_list_account_sessions`, `neweix_record_password_changed_event`, `neweix_revoke_account_session`, and `neweix_validate_current_session` all validate `auth.uid()` and the active session. Session listing and revocation are scoped to the caller; the current session cannot be revoked through the secondary-session RPC.
+- The reviewed Account RPCs are executable by `authenticated`, not by `anon`.
+- The private schema is not usable by `anon` or `authenticated`; only `service_role` has schema usage. The private tables flagged by the linter are intended to remain server-only.
+- The sixth warned function, `is_current_supreme_ruler()`, belongs to the separate Supreme authorization surface and was not changed in this Account task.
+
+The Account RPC code/grants review is complete. Keep the runtime authorization tests below as a release requirement. Do not add broad RLS policies merely to silence the linter.
 
 ## Controlled end-to-end test plan
 
@@ -106,7 +111,6 @@ Production deployment is blocked until:
 - [ ] The shared HMAC secret is configured in both runtimes and IP throttling is verified.
 - [ ] Supabase Auth canonical callback configuration is confirmed.
 - [ ] Leaked-password protection is enabled or the risk is explicitly accepted by the project owner.
-- [ ] Account RPC security findings are reviewed.
 - [ ] The controlled test plan above passes.
 - [ ] The canonical and non-canonical hostname behavior is verified.
 - [ ] A production deployment is explicitly authorized.
