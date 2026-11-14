@@ -23,6 +23,7 @@ This document records the production checks required before a release is conside
 | Cloudflare login IP-proof secret | `LOGIN_RATE_LIMIT_HMAC_SECRET` exists as a secret binding on `neweix-account` (value not exposed) | Verified |
 | Supabase login IP-proof secret | Project owner reports the same secret was added to `neweix-username-login`; connector cannot inspect secret presence or compare values | Owner-confirmed; independently unverified |
 | IP-based login throttling | Edge Function version 12 reads `LOGIN_RATE_LIMIT_HMAC_SECRET` and verifies the client IP HMAC proof | Configuration present; runtime test pending |
+| Recent username-login function traffic | No requests to `/functions/v1/neweix-username-login` appeared in the available Supabase edge log window | No live login test evidence; disposable test-account run required |
 | Supabase leaked-password protection | Reported unavailable on the project's current Free plan; Security Advisor reports it disabled | Plan limitation; do not block repeatedly on an unavailable toggle; risk remains documented |
 | Account RPC security review | Five Account `SECURITY DEFINER` RPCs inspected; all require the caller's user/session identity. `anon` cannot execute them. | Code/grants reviewed; runtime tests pending |
 | Private schema access | `anon` and `authenticated` lack `USAGE` on `private`; `service_role` has access | Verified |
@@ -45,6 +46,7 @@ The Account Next.js login action signs the client IP with `LOGIN_RATE_LIMIT_HMAC
 - The project owner reports that one high-entropy value has been set in both runtimes. Cloudflare confirms the Worker secret name exists; the Supabase connector cannot inspect Edge Function secret values, so equality cannot be independently verified.
 - The Edge Function version 12 reads `LOGIN_RATE_LIMIT_HMAC_SECRET` and validates the HMAC proof before selecting the IP rate-limit bucket.
 - Do not add the value to `wrangler.production.jsonc`, `vars`, GitHub source, or logs.
+- Supabase edge logs were inspected; no requests to `/functions/v1/neweix-username-login` were present in the available log window. This means there is no existing request evidence to validate the proof path.
 - A controlled login test must still confirm that both identifier-level and IP-level rate limiting work. Until that test passes, treat IP throttling as configured but not runtime-verified.
 
 ### 3. Supabase Auth leaked-password protection plan limitation
@@ -78,7 +80,7 @@ Use disposable test accounts only. Do not use real customer accounts or perform 
 - [ ] Confirm no session is granted before the required email verification.
 
 ### B. Username and email sign-in
-- [ ] Sign in using the test account's username.
+- [ ] Sign in using the test account's username. (No disposable test-account credentials were available during this audit, so this has not been executed.)
 - [ ] Sign out, then sign in using its email address.
 - [ ] Confirm invalid credentials return a generic error.
 - [ ] Confirm rate limiting works at the identifier level and, after secret provisioning, at the IP level.
