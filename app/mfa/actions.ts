@@ -40,6 +40,21 @@ export async function beginTotpEnrollment(): Promise<ActionError | {
   const access = await getActiveAccountClient();
   if (!access.ok) return access;
 
+  const { data: existingFactors, error: factorsError } = await access.supabase.auth.mfa.listFactors();
+  if (factorsError) {
+    return { ok: false, error: "Could not verify your authenticator settings. Please try again." };
+  }
+  const hasVerifiedTotp = (existingFactors?.all ?? []).some(
+    (factor) => factor.factor_type === "totp" && factor.status === "verified",
+  );
+  if (hasVerifiedTotp) {
+    const { data: assurance, error: assuranceError } =
+      await access.supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (assuranceError || assurance?.currentLevel !== "aal2") {
+      return { ok: false, error: "Verify your existing authenticator before adding another one." };
+    }
+  }
+
   const { data, error } = await access.supabase.auth.mfa.enroll({
     factorType: "totp",
     friendlyName: "Neweix Account authenticator",
