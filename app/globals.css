@@ -10,3 +10,37 @@
 .session-actions{display:flex;justify-content:flex-end;margin-top:22px}
 .danger{background:#fff1f1;color:#a12c2c;border:1px solid #f1d0d0}
 @media(max-width:560px){.session-item{align-items:flex-start;flex-direction:column}.session-item form{width:100%}.session-item form .button{width:100%}.session-actions .button{width:100%}}
+
+.signup-panel{max-width:560px}
+.signup-intro{font-size:14px;line-height:1.65;margin:10px 0 22px}
+.signup-panel form{gap:15px}
+.form-section-title{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;color:#315bd0;padding-top:5px;border-bottom:1px solid #edf0f5;padding-bottom:9px}
+.signup-panel select{width:100%;padding:13px 14px;border:1px solid #d8deea;border-radius:9px;background:#fff;font:inherit;color:#152033}
+.signup-panel select:focus{outline:3px solid #dce6ff;border-color:#5277d9}
+.signup-panel .consent-row{display:grid;grid-template-columns:20px 1fr;align-items:start;gap:10px;font-size:12px;font-weight:500;line-height:1.6;color:#56647a}
+.signup-panel .consent-row input{width:17px;height:17px;margin:2px 0 0;accent-color:#1d43a8}
+.signup-note{margin-top:20px;padding:14px 15px;background:#f5f7fc;border:1px solid #e7ecf5;border-radius:11px;font-size:12px;line-height:1.6;color:#59667c}
+.signup-note strong{display:block;color:#1c2a45;margin-bottom:3px}
+
+.legal-panel h2{font-size:17px;margin:26px 0 8px;color:#17233b}.legal-panel p{font-size:14px;line-height:1.75;color:#58667d}.legal-panel h1{margin-bottom:8px}.legal-panel>.fine{font-size:12px;border-top:1px solid #edf0f5;padding-top:14px;margin-top:28px}
+
+
+.profile-management{margin-top:28px}
+.profile-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:18px 0}
+.profile-card{border:1px solid #e5eaf3;border-radius:14px;padding:16px;background:#fbfcff}
+.profile-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.profile-type{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#66738b}
+.profile-default{font-size:11px;font-weight:700;color:#1748b5;background:#eaf0ff;padding:5px 8px;border-radius:99px}
+.profile-card h3{font-size:17px;margin:13px 0 10px;color:#18243a;overflow-wrap:anywhere}
+.business-profile-form{border-top:1px solid #edf0f5;padding-top:20px;margin-top:20px;display:grid;gap:13px}
+.business-profile-form h3{font-size:17px;margin:0 0 3px}
+.business-profile-form label{display:grid;gap:7px}
+.business-profile-form input{width:100%;padding:13px 14px;border:1px solid #d8deea;border-radius:9px;font:inherit}
+.business-profile-form input:focus{outline:3px solid #dce6ff;border-color:#5277d9}
+@media(max-width:600px){.profile-grid{grid-template-columns:1fr}.profile-card{padding:14px}}
+
+
+.profile-edit-form{display:grid;gap:10px;margin:12px 0 16px;padding:12px;border:1px solid #edf0f5;border-radius:10px;background:#fff}
+.profile-edit-form label{display:grid;gap:6px;font-size:13px;color:#526078}
+.profile-edit-form input{width:100%;padding:10px 12px;border:1px solid #d8deea;border-radius:8px;font:inherit;color:#18243a}
+.profile-edit-form input:focus{outline:3px solid #dce6ff;border-color:#5277d9}

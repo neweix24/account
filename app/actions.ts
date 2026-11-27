@@ -3,6 +3,7 @@
 import { createHmac } from "node:crypto";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isValidAccountPassword, passwordsMatch } from "@/lib/auth/validation";
 
@@ -30,8 +31,12 @@ export async function signUp(formData: FormData) {
   const email = value(formData, "email").toLowerCase();
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
+  const preferredLanguage = value(formData, "preferredLanguage");
+  const acceptTerms = formData.get("acceptTerms") === "yes";
 
-  if (!fullName || !/^[a-z0-9_]{3,20}$/.test(username) || !email ||
+  if (!fullName || fullName.length > 100 || !/^[a-z0-9_]{3,20}$/.test(username) ||
+      !/^[^@ ]+@[^@ ]+[.][^@ .]+$/.test(email) || email.length > 254 ||
+      !["en", "bn"].includes(preferredLanguage) || !acceptTerms ||
       !isValidAccountPassword(password) || !passwordsMatch(password, confirmPassword)) {
     redirect("/signup?error=Check%20your%20details.%20Username%20must%20be%203%E2%80%9320%20characters%20and%20passwords%20must%20match.%20Passwords%20must%20be%2012%E2%80%93128%20characters.");
   }
@@ -45,7 +50,15 @@ export async function signUp(formData: FormData) {
     password,
     options: {
       emailRedirectTo: `${siteUrl}/auth/confirm`,
-      data: { full_name: fullName, username, identity_type: "customer" },
+      data: {
+        full_name: fullName,
+        username,
+        identity_type: "customer",
+        preferred_language: preferredLanguage,
+        terms_accepted: true,
+        terms_version: "1.0",
+        privacy_version: "1.0",
+      },
     },
   });
 
@@ -150,4 +163,71 @@ export async function changeUsername(formData: FormData) {
   }
 
   redirect("/account?username_message=updated");
+}
+
+
+export async function createBusinessProfile(formData: FormData) {
+  const businessName = value(formData, "businessName");
+  const businessCategory = value(formData, "businessCategory");
+  if (businessName.length < 2 || businessName.length > 120 || businessCategory.length > 80) {
+    redirect("/account?profile_error=invalid_business");
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("neweix_create_business_profile", {
+    p_business_name: businessName,
+    p_business_category: businessCategory || null,
+  });
+  if (error) redirect("/account?profile_error=profile_unavailable");
+  revalidatePath("/account");
+  redirect("/account?profile_message=business_created");
+}
+
+export async function setDefaultProfile(formData: FormData) {
+  const profileId = value(formData, "profileId");
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(profileId)) {
+    redirect("/account?profile_error=invalid_profile");
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("neweix_set_default_profile", { p_profile_id: profileId });
+  if (error) redirect("/account?profile_error=profile_unavailable");
+  revalidatePath("/account");
+  redirect("/account?profile_message=profile_switched");
+}
+
+
+export async function updateAccountProfile(formData: FormData) {
+  const profileId = value(formData, "profileId");
+  const displayName = value(formData, "displayName");
+  const businessName = value(formData, "businessName");
+  const businessCategory = value(formData, "businessCategory");
+  const publicEmail = value(formData, "publicEmail").toLowerCase();
+  const publicPhone = value(formData, "publicPhone");
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(profileId) ||
+      displayName.length < 1 || displayName.length > 100 ||
+      businessName.length > 120 || businessCategory.length > 80 ||
+      publicEmail.length > 254 || (publicEmail && !/^[^@ ]+@[^@ ]+[.][^@ .]+$/.test(publicEmail)) ||
+      publicPhone.length > 25) {
+    redirect("/account?profile_error=invalid_profile");
+  }
+  const supabase = await createClient();
+  const { data: ownedProfile, error: lookupError } = await supabase
+    .from("account_profiles").select("id,profile_type").eq("id", profileId).maybeSingle();
+  if (lookupError || !ownedProfile) redirect("/account?profile_error=profile_unavailable");
+
+  const { error: profileError } = await supabase.from("account_profiles")
+    .update({ display_name: displayName }).eq("id", profileId);
+  if (profileError) redirect("/account?profile_error=profile_unavailable");
+
+  if (ownedProfile.profile_type === "business") {
+    const { error: businessError } = await supabase.from("account_business_profiles")
+      .update({
+        business_name: businessName || displayName,
+        business_category: businessCategory || null,
+        public_email: publicEmail || null,
+        public_phone: publicPhone || null,
+      }).eq("profile_id", profileId);
+    if (businessError) redirect("/account?profile_error=profile_unavailable");
+  }
+  revalidatePath("/account");
+  redirect("/account?profile_message=profile_updated");
 }
