@@ -29,7 +29,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
           </label>
           <label className="consent-row">
             <input name="acceptTerms" type="checkbox" value="yes" required />
-            <span>I agree to the Neweix Terms of Service and Privacy Policy. I understand that my Account is the central identity for Neweix services.</span>
+            <span>I agree to the <Link href="/legal/terms">Terms of Service</Link> and <Link href="/legal/privacy">Privacy Policy</Link>. I understand that my Account is the central identity for Neweix services.</span>
           </label>
           <button className="button primary full" type="submit">Create Neweix Account</button>
         </form>
