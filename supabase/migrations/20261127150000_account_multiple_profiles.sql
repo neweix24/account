@@ -36,19 +36,13 @@ create table if not exists public.account_business_profiles (
 alter table public.account_profiles enable row level security;
 alter table public.account_business_profiles enable row level security;
 revoke all on public.account_profiles, public.account_business_profiles from anon;
-grant select, insert, update on public.account_profiles to authenticated;
-grant select, insert, update on public.account_business_profiles to authenticated;
+grant select on public.account_profiles to authenticated;
+grant select on public.account_business_profiles to authenticated;
 
 drop policy if exists "Account owners manage own profiles" on public.account_profiles;
 create policy "Account owners manage own profiles"
-on public.account_profiles for all to authenticated
+on public.account_profiles for select to authenticated
 using (exists (
-  select 1 from public.account a
-  where a.user_id = account_profiles.account_user_id
-    and a.user_id = (select auth.uid())
-    and a.account_status = 'active'
-))
-with check (exists (
   select 1 from public.account a
   where a.user_id = account_profiles.account_user_id
     and a.user_id = (select auth.uid())
@@ -57,16 +51,8 @@ with check (exists (
 
 drop policy if exists "Account owners manage own business profiles" on public.account_business_profiles;
 create policy "Account owners manage own business profiles"
-on public.account_business_profiles for all to authenticated
+on public.account_business_profiles for select to authenticated
 using (exists (
-  select 1 from public.account_profiles p
-  join public.account a on a.user_id = p.account_user_id
-  where p.id = account_business_profiles.profile_id
-    and a.user_id = (select auth.uid())
-    and a.account_status = 'active'
-    and p.profile_type = 'business'
-))
-with check (exists (
   select 1 from public.account_profiles p
   join public.account a on a.user_id = p.account_user_id
   where p.id = account_business_profiles.profile_id
