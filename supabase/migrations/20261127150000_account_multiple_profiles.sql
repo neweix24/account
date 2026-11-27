@@ -36,8 +36,10 @@ create table if not exists public.account_business_profiles (
 alter table public.account_profiles enable row level security;
 alter table public.account_business_profiles enable row level security;
 revoke all on public.account_profiles, public.account_business_profiles from anon;
-grant select, insert, update on public.account_profiles to authenticated;
-grant select, insert, update on public.account_business_profiles to authenticated;
+grant select, insert on public.account_profiles to authenticated;
+grant update (display_name, avatar_url, is_default) on public.account_profiles to authenticated;
+grant select, insert on public.account_business_profiles to authenticated;
+grant update (business_name, business_category, public_email, public_phone) on public.account_business_profiles to authenticated;
 
 drop policy if exists "Account owners manage own profiles" on public.account_profiles;
 create policy "Account owners manage own profiles"
