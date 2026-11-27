@@ -23,3 +23,18 @@
 .signup-note strong{display:block;color:#1c2a45;margin-bottom:3px}
 
 .legal-panel h2{font-size:17px;margin:26px 0 8px;color:#17233b}.legal-panel p{font-size:14px;line-height:1.75;color:#58667d}.legal-panel h1{margin-bottom:8px}.legal-panel>.fine{font-size:12px;border-top:1px solid #edf0f5;padding-top:14px;margin-top:28px}
+
+
+.profile-management{margin-top:28px}
+.profile-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:18px 0}
+.profile-card{border:1px solid #e5eaf3;border-radius:14px;padding:16px;background:#fbfcff}
+.profile-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.profile-type{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#66738b}
+.profile-default{font-size:11px;font-weight:700;color:#1748b5;background:#eaf0ff;padding:5px 8px;border-radius:99px}
+.profile-card h3{font-size:17px;margin:13px 0 10px;color:#18243a;overflow-wrap:anywhere}
+.business-profile-form{border-top:1px solid #edf0f5;padding-top:20px;margin-top:20px;display:grid;gap:13px}
+.business-profile-form h3{font-size:17px;margin:0 0 3px}
+.business-profile-form label{display:grid;gap:7px}
+.business-profile-form input{width:100%;padding:13px 14px;border:1px solid #d8deea;border-radius:9px;font:inherit}
+.business-profile-form input:focus{outline:3px solid #dce6ff;border-color:#5277d9}
+@media(max-width:600px){.profile-grid{grid-template-columns:1fr}.profile-card{padding:14px}}
