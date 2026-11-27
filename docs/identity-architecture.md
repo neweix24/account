@@ -63,3 +63,14 @@ Enabling the Supabase OAuth server and registering clients is a project-level Au
 ## Non-goals
 
 This repository does not own Eixon's wallet/ledger, Supreme's administration, Neweix commerce orders, or any other service's domain database. Those systems consume the central identity and enforce their own authorization.
+
+
+## Ecosystem governance boundary
+
+Supreme is the highest and final Neweix ecosystem authority. Admin conducts day-to-day service operations through Supreme-approved, scoped workforce permissions. Neweix Account remains strictly the customer identity provider.
+
+- Supreme ruler identity stays in `supreme.identities`; never create a Neweix Account customer row for it.
+- Admin and employees belong to the separate Employees/workforce identity domain, with the Admin authority grant approved by Supreme.
+- A customer Account row or user metadata never grants Admin, employee, or Supreme authority.
+- Each service must use an approved service-client contract and validate its access scope on the server.
+- Canonical rules: [Supreme Ecosystem Governance Charter](https://github.com/neweix24/supreme/blob/main/docs/ecosystem-governance-charter.md).
