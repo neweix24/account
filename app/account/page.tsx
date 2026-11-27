@@ -13,7 +13,7 @@ type AccountProfileRow = {
   created_at: string;
   account_business_profiles:
     | { business_name: string; business_category: string | null; public_email: string | null; public_phone: string | null; verification_status: string }
-    | { business_name: string; business_category: string | null; verification_status: string }[]
+    | { business_name: string; business_category: string | null; public_email: string | null; public_phone: string | null; verification_status: string }[]
     | null;
 };
 
