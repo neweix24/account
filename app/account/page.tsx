@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { signOut, changeUsername, createBusinessProfile, setDefaultProfile } from "@/app/actions";
+import { signOut, changeUsername, createBusinessProfile, setDefaultProfile, updateAccountProfile } from "@/app/actions";
 import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,7 @@ type AccountProfileRow = {
   profile_status: string;
   created_at: string;
   account_business_profiles:
-    | { business_name: string; business_category: string | null; verification_status: string }
+    | { business_name: string; business_category: string | null; public_email: string | null; public_phone: string | null; verification_status: string }
     | { business_name: string; business_category: string | null; verification_status: string }[]
     | null;
 };
@@ -28,7 +28,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
   const { data: profile } = await supabase.from("account").select("public_id,username,full_name,display_name,email,phone,account_status,created_at,preferred_language").eq("user_id", user.id).maybeSingle();
   if (profile?.account_status !== "active") redirect("/login?error=This%20account%20is%20not%20currently%20active.");
   const { data: profiles } = await supabase.from("account_profiles")
-    .select("id,profile_type,display_name,is_default,profile_status,created_at,account_business_profiles(business_name,business_category,verification_status)")
+    .select("id,profile_type,display_name,is_default,profile_status,created_at,account_business_profiles(business_name,business_category,public_email,public_phone,verification_status)")
     .eq("account_user_id", user.id).eq("profile_status", "active").order("created_at", { ascending: true });
 
   const displayName = profile?.display_name ?? profile?.full_name;
@@ -69,6 +69,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
         {params.profile_error && <p className="notice error" role="alert">{profileErrors[params.profile_error] ?? profileErrors.profile_unavailable}</p>}
         {params.profile_message === "business_created" && <p className="notice success" role="status">Business Profile created.</p>}
         {params.profile_message === "profile_switched" && <p className="notice success" role="status">Default profile updated.</p>}
+        {params.profile_message === "profile_updated" && <p className="notice success" role="status">Profile details updated.</p>}
         <div className="profile-grid">
           {(profiles ?? []).map((item: AccountProfileRow) => {
             const business = Array.isArray(item.account_business_profiles) ? item.account_business_profiles[0] : item.account_business_profiles;
@@ -76,6 +77,17 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
               <div className="profile-card-top"><span className="profile-type">{item.profile_type === "personal" ? "Personal Profile" : "Business Profile"}</span>{item.is_default && <span className="profile-default">Default</span>}</div>
               <h3>{item.display_name}</h3>
               {business && <p className="muted">{business.business_category || "Business"} · {business.verification_status}</p>}
+              <form action={updateAccountProfile} className="profile-edit-form">
+                <input type="hidden" name="profileId" value={item.id}/>
+                <label>{item.profile_type === "personal" ? "Display name" : "Profile display name"}<input name="displayName" defaultValue={item.display_name} minLength={1} maxLength={100} required/></label>
+                {business && <>
+                  <label>Business name<input name="businessName" defaultValue={business.business_name} minLength={2} maxLength={120} required/></label>
+                  <label>Business category<input name="businessCategory" defaultValue={business.business_category ?? ""} maxLength={80}/></label>
+                  <label>Public email<input name="publicEmail" type="email" defaultValue={business.public_email ?? ""} maxLength={254}/></label>
+                  <label>Public phone<input name="publicPhone" type="tel" defaultValue={business.public_phone ?? ""} maxLength={25}/></label>
+                </>}
+                <button className="button secondary" type="submit">Save profile</button>
+              </form>
               {!item.is_default && <form action={setDefaultProfile}><input type="hidden" name="profileId" value={item.id}/><button className="button secondary" type="submit">Set as default</button></form>}
             </article>;
           })}
