@@ -156,10 +156,6 @@ begin
   if v_user_id is null then
     raise exception 'Authentication required' using errcode = '28000';
   end if;
-  update public.account_profiles p
-     set is_default = (p.id = p_profile_id)
-   where p.account_user_id = v_user_id
-     and p.profile_status = 'active';
   if not exists (
     select 1 from public.account_profiles p
     where p.id = p_profile_id
@@ -168,10 +164,62 @@ begin
   ) then
     raise exception 'Profile not found or unavailable' using errcode = '42501';
   end if;
+  update public.account_profiles p
+     set is_default = (p.id = p_profile_id)
+   where p.account_user_id = v_user_id
+     and p.profile_status = 'active';
   return true;
 end;
 $function$;
 revoke all on function public.neweix_set_default_profile(uuid) from public, anon;
 grant execute on function public.neweix_set_default_profile(uuid) to authenticated;
+
+
+create or replace function private.create_default_neweix_personal_profile()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+begin
+  insert into public.account_profiles(account_user_id, profile_type, display_name, avatar_url, is_default)
+  values (
+    new.user_id, 'personal',
+    coalesce(nullif(new.display_name, ''), nullif(new.full_name, ''), new.username),
+    new.avatar_url, true
+  )
+  on conflict (account_user_id) where profile_type = 'personal' do nothing;
+  return new;
+end;
+$function$;
+revoke all on function private.create_default_neweix_personal_profile() from public, anon, authenticated;
+drop trigger if exists create_default_neweix_personal_profile on public.account;
+create trigger create_default_neweix_personal_profile
+after insert on public.account
+for each row execute function private.create_default_neweix_personal_profile();
+
+create or replace function private.sync_neweix_signup_language()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_language text := new.raw_user_meta_data ->> 'preferred_language';
+begin
+  if v_language in ('en', 'bn') then
+    update public.account
+       set preferred_language = v_language,
+           updated_at = pg_catalog.now()
+     where user_id = new.id;
+  end if;
+  return new;
+end;
+$function$;
+revoke all on function private.sync_neweix_signup_language() from public, anon, authenticated;
+drop trigger if exists zz_sync_neweix_signup_language on auth.users;
+create trigger zz_sync_neweix_signup_language
+after insert on auth.users
+for each row execute function private.sync_neweix_signup_language();
 
 commit;
