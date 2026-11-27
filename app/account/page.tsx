@@ -4,6 +4,19 @@ import { signOut, changeUsername, createBusinessProfile, setDefaultProfile } fro
 import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
+type AccountProfileRow = {
+  id: string;
+  profile_type: "personal" | "business";
+  display_name: string;
+  is_default: boolean;
+  profile_status: string;
+  created_at: string;
+  account_business_profiles:
+    | { business_name: string; business_category: string | null; verification_status: string }
+    | { business_name: string; business_category: string | null; verification_status: string }[]
+    | null;
+};
+
 export default async function AccountPage({ searchParams }: { searchParams: Promise<{ username_error?: string; username_message?: string; profile_error?: string; profile_message?: string }> }) {
   const params = await searchParams;
   const supabase = await createClient();
@@ -57,7 +70,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
         {params.profile_message === "business_created" && <p className="notice success" role="status">Business Profile created.</p>}
         {params.profile_message === "profile_switched" && <p className="notice success" role="status">Default profile updated.</p>}
         <div className="profile-grid">
-          {(profiles ?? []).map((item: any) => {
+          {(profiles ?? []).map((item: AccountProfileRow) => {
             const business = Array.isArray(item.account_business_profiles) ? item.account_business_profiles[0] : item.account_business_profiles;
             return <article className="profile-card" key={item.id}>
               <div className="profile-card-top"><span className="profile-type">{item.profile_type === "personal" ? "Personal Profile" : "Business Profile"}</span>{item.is_default && <span className="profile-default">Default</span>}</div>
