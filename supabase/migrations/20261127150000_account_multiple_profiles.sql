@@ -165,8 +165,14 @@ begin
     raise exception 'Profile not found or unavailable' using errcode = '42501';
   end if;
   update public.account_profiles p
-     set is_default = (p.id = p_profile_id)
+     set is_default = false
    where p.account_user_id = v_user_id
+     and p.profile_status = 'active'
+     and p.is_default = true;
+  update public.account_profiles p
+     set is_default = true
+   where p.id = p_profile_id
+     and p.account_user_id = v_user_id
      and p.profile_status = 'active';
   return true;
 end;
