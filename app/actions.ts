@@ -3,6 +3,7 @@
 import { createHmac } from "node:crypto";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isValidAccountPassword, passwordsMatch } from "@/lib/auth/validation";
 
@@ -162,4 +163,33 @@ export async function changeUsername(formData: FormData) {
   }
 
   redirect("/account?username_message=updated");
+}
+
+
+export async function createBusinessProfile(formData: FormData) {
+  const businessName = value(formData, "businessName");
+  const businessCategory = value(formData, "businessCategory");
+  if (businessName.length < 2 || businessName.length > 120 || businessCategory.length > 80) {
+    redirect("/account?profile_error=invalid_business");
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("neweix_create_business_profile", {
+    p_business_name: businessName,
+    p_business_category: businessCategory || null,
+  });
+  if (error) redirect("/account?profile_error=profile_unavailable");
+  revalidatePath("/account");
+  redirect("/account?profile_message=business_created");
+}
+
+export async function setDefaultProfile(formData: FormData) {
+  const profileId = value(formData, "profileId");
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(profileId)) {
+    redirect("/account?profile_error=invalid_profile");
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("neweix_set_default_profile", { p_profile_id: profileId });
+  if (error) redirect("/account?profile_error=profile_unavailable");
+  revalidatePath("/account");
+  redirect("/account?profile_message=profile_switched");
 }
