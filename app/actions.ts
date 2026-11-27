@@ -193,3 +193,41 @@ export async function setDefaultProfile(formData: FormData) {
   revalidatePath("/account");
   redirect("/account?profile_message=profile_switched");
 }
+
+
+export async function updateAccountProfile(formData: FormData) {
+  const profileId = value(formData, "profileId");
+  const displayName = value(formData, "displayName");
+  const businessName = value(formData, "businessName");
+  const businessCategory = value(formData, "businessCategory");
+  const publicEmail = value(formData, "publicEmail").toLowerCase();
+  const publicPhone = value(formData, "publicPhone");
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(profileId) ||
+      displayName.length < 1 || displayName.length > 100 ||
+      businessName.length > 120 || businessCategory.length > 80 ||
+      publicEmail.length > 254 || (publicEmail && !/^[^@ ]+@[^@ ]+[.][^@ .]+$/.test(publicEmail)) ||
+      publicPhone.length > 25) {
+    redirect("/account?profile_error=invalid_profile");
+  }
+  const supabase = await createClient();
+  const { data: ownedProfile, error: lookupError } = await supabase
+    .from("account_profiles").select("id,profile_type").eq("id", profileId).maybeSingle();
+  if (lookupError || !ownedProfile) redirect("/account?profile_error=profile_unavailable");
+
+  const { error: profileError } = await supabase.from("account_profiles")
+    .update({ display_name: displayName }).eq("id", profileId);
+  if (profileError) redirect("/account?profile_error=profile_unavailable");
+
+  if (ownedProfile.profile_type === "business") {
+    const { error: businessError } = await supabase.from("account_business_profiles")
+      .update({
+        business_name: businessName || displayName,
+        business_category: businessCategory || null,
+        public_email: publicEmail || null,
+        public_phone: publicPhone || null,
+      }).eq("profile_id", profileId);
+    if (businessError) redirect("/account?profile_error=profile_unavailable");
+  }
+  revalidatePath("/account");
+  redirect("/account?profile_message=profile_updated");
+}
