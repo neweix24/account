@@ -5,7 +5,7 @@ create table if not exists private.neweix_account_consents (
   id bigint generated always as identity primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
   consent_type text not null check (consent_type in ('terms_of_service','privacy_policy')),
-  policy_version text not null check (policy_version ~ '^[0-9]+[.][0-9]+),
+  policy_version text not null check (policy_version ~ '^[0-9]+[.][0-9]+$'),
   accepted_at timestamptz not null default now(),
   source text not null default 'signup' check (source in ('signup','settings','admin_migration')),
   unique (user_id, consent_type, policy_version)
