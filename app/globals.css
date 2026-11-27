@@ -21,3 +21,5 @@
 .signup-panel .consent-row input{width:17px;height:17px;margin:2px 0 0;accent-color:#1d43a8}
 .signup-note{margin-top:20px;padding:14px 15px;background:#f5f7fc;border:1px solid #e7ecf5;border-radius:11px;font-size:12px;line-height:1.6;color:#59667c}
 .signup-note strong{display:block;color:#1c2a45;margin-bottom:3px}
+
+.legal-panel h2{font-size:17px;margin:26px 0 8px;color:#17233b}.legal-panel p{font-size:14px;line-height:1.75;color:#58667d}.legal-panel h1{margin-bottom:8px}.legal-panel>.fine{font-size:12px;border-top:1px solid #edf0f5;padding-top:14px;margin-top:28px}
