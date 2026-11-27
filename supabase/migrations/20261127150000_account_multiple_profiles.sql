@@ -101,4 +101,77 @@ from public.account a
 where a.account_status = 'active'
 on conflict (account_user_id) where profile_type = 'personal' do nothing;
 
+
+create or replace function public.neweix_create_business_profile(
+  p_business_name text,
+  p_business_category text default null
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_user_id uuid := auth.uid();
+  v_profile_id uuid;
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+  if p_business_name is null or pg_catalog.char_length(pg_catalog.btrim(p_business_name)) not between 2 and 120 then
+    raise exception 'Business name must be 2 to 120 characters' using errcode = '22023';
+  end if;
+  if p_business_category is not null and pg_catalog.char_length(pg_catalog.btrim(p_business_category)) > 80 then
+    raise exception 'Business category is too long' using errcode = '22023';
+  end if;
+  if not exists (
+    select 1 from public.account a
+    where a.user_id = v_user_id and a.account_status = 'active'
+  ) then
+    raise exception 'Active Neweix Account required' using errcode = '42501';
+  end if;
+
+  insert into public.account_profiles(account_user_id, profile_type, display_name, is_default)
+  values (v_user_id, 'business', pg_catalog.btrim(p_business_name), false)
+  returning id into v_profile_id;
+
+  insert into public.account_business_profiles(profile_id, business_name, business_category)
+  values (v_profile_id, pg_catalog.btrim(p_business_name), nullif(pg_catalog.btrim(coalesce(p_business_category, '')), ''));
+
+  return v_profile_id;
+end;
+$function$;
+revoke all on function public.neweix_create_business_profile(text, text) from public, anon;
+grant execute on function public.neweix_create_business_profile(text, text) to authenticated;
+
+create or replace function public.neweix_set_default_profile(p_profile_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_user_id uuid := auth.uid();
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+  update public.account_profiles p
+     set is_default = (p.id = p_profile_id)
+   where p.account_user_id = v_user_id
+     and p.profile_status = 'active';
+  if not exists (
+    select 1 from public.account_profiles p
+    where p.id = p_profile_id
+      and p.account_user_id = v_user_id
+      and p.profile_status = 'active'
+  ) then
+    raise exception 'Profile not found or unavailable' using errcode = '42501';
+  end if;
+  return true;
+end;
+$function$;
+revoke all on function public.neweix_set_default_profile(uuid) from public, anon;
+grant execute on function public.neweix_set_default_profile(uuid) to authenticated;
+
 commit;
