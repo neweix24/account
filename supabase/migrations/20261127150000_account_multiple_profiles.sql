@@ -36,8 +36,8 @@ create table if not exists public.account_business_profiles (
 alter table public.account_profiles enable row level security;
 alter table public.account_business_profiles enable row level security;
 revoke all on public.account_profiles, public.account_business_profiles from anon;
-grant select on public.account_profiles to authenticated;
-grant select on public.account_business_profiles to authenticated;
+grant select, insert, update on public.account_profiles to authenticated;
+grant select, insert, update on public.account_business_profiles to authenticated;
 
 drop policy if exists "Account owners manage own profiles" on public.account_profiles;
 create policy "Account owners manage own profiles"
@@ -58,6 +58,52 @@ using (exists (
   where p.id = account_business_profiles.profile_id
     and a.user_id = (select auth.uid())
     and a.account_status = 'active'
+    and p.profile_type = 'business'
+));
+
+
+drop policy if exists "Account owners insert own business profiles" on public.account_profiles;
+create policy "Account owners insert own business profiles"
+on public.account_profiles for insert to authenticated
+with check (
+  account_user_id = (select auth.uid())
+  and profile_type = 'business'
+  and profile_status = 'active'
+  and is_default = false
+  and exists (select 1 from public.account a where a.user_id = account_profiles.account_user_id and a.account_status = 'active')
+);
+
+drop policy if exists "Account owners update own profiles" on public.account_profiles;
+create policy "Account owners update own profiles"
+on public.account_profiles for update to authenticated
+using (account_user_id = (select auth.uid()))
+with check (account_user_id = (select auth.uid()));
+
+drop policy if exists "Account owners insert own business details" on public.account_business_profiles;
+create policy "Account owners insert own business details"
+on public.account_business_profiles for insert to authenticated
+with check (exists (
+  select 1 from public.account_profiles p
+  join public.account a on a.user_id = p.account_user_id
+  where p.id = account_business_profiles.profile_id
+    and p.account_user_id = (select auth.uid())
+    and p.profile_type = 'business'
+    and a.account_status = 'active'
+));
+
+drop policy if exists "Account owners update own business details" on public.account_business_profiles;
+create policy "Account owners update own business details"
+on public.account_business_profiles for update to authenticated
+using (exists (
+  select 1 from public.account_profiles p
+  where p.id = account_business_profiles.profile_id
+    and p.account_user_id = (select auth.uid())
+    and p.profile_type = 'business'
+))
+with check (exists (
+  select 1 from public.account_profiles p
+  where p.id = account_business_profiles.profile_id
+    and p.account_user_id = (select auth.uid())
     and p.profile_type = 'business'
 ));
 
@@ -94,7 +140,7 @@ create or replace function public.neweix_create_business_profile(
 )
 returns uuid
 language plpgsql
-security definer
+security invoker
 set search_path = ''
 as $function$
 declare
