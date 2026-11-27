@@ -30,8 +30,12 @@ export async function signUp(formData: FormData) {
   const email = value(formData, "email").toLowerCase();
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
+  const preferredLanguage = value(formData, "preferredLanguage");
+  const acceptTerms = formData.get("acceptTerms") === "yes";
 
-  if (!fullName || !/^[a-z0-9_]{3,20}$/.test(username) || !email ||
+  if (!fullName || fullName.length > 100 || !/^[a-z0-9_]{3,20}$/.test(username) ||
+      !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || email.length > 254 ||
+      !["en", "bn"].includes(preferredLanguage) || !acceptTerms ||
       !isValidAccountPassword(password) || !passwordsMatch(password, confirmPassword)) {
     redirect("/signup?error=Check%20your%20details.%20Username%20must%20be%203%E2%80%9320%20characters%20and%20passwords%20must%20match.%20Passwords%20must%20be%2012%E2%80%93128%20characters.");
   }
@@ -45,7 +49,15 @@ export async function signUp(formData: FormData) {
     password,
     options: {
       emailRedirectTo: `${siteUrl}/auth/confirm`,
-      data: { full_name: fullName, username, identity_type: "customer" },
+      data: {
+        full_name: fullName,
+        username,
+        identity_type: "customer",
+        preferred_language: preferredLanguage,
+        terms_accepted: true,
+        terms_version: "1.0",
+        privacy_version: "1.0",
+      },
     },
   });
 
